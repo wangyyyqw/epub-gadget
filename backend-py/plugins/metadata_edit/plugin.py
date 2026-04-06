@@ -149,7 +149,7 @@ class MetadataEditPlugin(BasePlugin):
                 uri = f'{{{NAMESPACES["dc"]}}}{tag}'
                 existing = opf_root.find(f'.//{uri}')
                 if existing is None:
-                    existing = ET.SubElement(opf_root.find('.//{http://www.idpf.org/2007/opf}metadata'), uri)
+                    existing = ET.SubElement(opf_root.find(f'.//{{{NAMESPACES["opf"]}}}metadata'), uri)
                 if tag in metadata:
                     existing.text = metadata[tag]
 
@@ -187,41 +187,41 @@ class MetadataEditPlugin(BasePlugin):
         mime_types = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'webp': 'image/webp', 'gif': 'image/gif'}
         mime = mime_types.get(ext, 'image/jpeg')
 
-        manifest = opf_root.find('.//{http://www.idpf.org/2007/opf}manifest')
+        manifest = opf_root.find(f'.//{{{NAMESPACES["opf"]}}}manifest')
         cover_id = 'cover-image'
 
-        for item in manifest.findall('{http://www.idpf.org/2007/opf}item'):
+        for item in manifest.findall(f'{{{NAMESPACES["opf"]}}}item'):
             if item.get('id') == cover_id:
                 manifest.remove(item)
             href = item.get('href', '')
             if 'cover' in href.lower() and any(href.endswith(e) for e in ['.jpg', '.jpeg', '.png', '.webp']):
                 manifest.remove(item)
 
-        cover_item = ET.SubElement(manifest, '{http://www.idpf.org/2007/opf}item')
+        cover_item = ET.SubElement(manifest, f'{{{NAMESPACES["opf"]}}}item')
         cover_item.set('id', cover_id)
         cover_item.set('href', f'Images/{new_cover_name}')
         cover_item.set('media-type', mime)
         if ext in ('jpg', 'jpeg'):
             cover_item.set('properties', 'cover-image')
 
-        spine = opf_root.find('.//{http://www.idpf.org/2007/opf}spine')
+        spine = opf_root.find(f'.//{{{NAMESPACES["opf"]}}}spine')
         if spine is not None:
             spine.set('cover', cover_id)
 
-        metadata = opf_root.find('.//{http://www.idpf.org/2007/opf}metadata')
-        for meta in metadata.findall('{http://www.idpf.org/2007/opf}meta'):
+        metadata = opf_root.find(f'.//{{{NAMESPACES["opf"]}}}metadata')
+        for meta in metadata.findall(f'{{{NAMESPACES["opf"]}}}meta'):
             if meta.get('name') == 'cover':
                 metadata.remove(meta)
 
-        meta = ET.SubElement(metadata, '{http://www.idpf.org/2007/opf}meta')
+        meta = ET.SubElement(metadata, f'{{{NAMESPACES["opf"]}}}meta')
         meta.set('name', 'cover')
         meta.set('content', cover_id)
 
     def _remove_cover(self, opf_root, opf_path, opf_dir):
-        manifest = opf_root.find('.//{http://www.idpf.org/2007/opf}manifest')
+        manifest = opf_root.find(f'.//{{{NAMESPACES["opf"]}}}manifest')
         if manifest is not None:
             items_to_remove = []
-            for item in manifest.findall('{http://www.idpf.org/2007/opf}item'):
+            for item in manifest.findall(f'{{{NAMESPACES["opf"]}}}item'):
                 href = item.get('href', '')
                 item_id = item.get('id', '')
                 if 'cover' in href.lower() or item_id == 'cover-image':
@@ -229,13 +229,13 @@ class MetadataEditPlugin(BasePlugin):
             for item in items_to_remove:
                 manifest.remove(item)
 
-        spine = opf_root.find('.//{http://www.idpf.org/2007/opf}spine')
+        spine = opf_root.find(f'.//{{{NAMESPACES["opf"]}}}spine')
         if spine is not None and spine.get('cover'):
             del spine.attrib['cover']
 
-        metadata = opf_root.find('.//{http://www.idpf.org/2007/opf}metadata')
+        metadata = opf_root.find(f'.//{{{NAMESPACES["opf"]}}}metadata')
         if metadata is not None:
-            for meta in metadata.findall('{http://www.idpf.org/2007/opf}meta'):
+            for meta in metadata.findall(f'{{{NAMESPACES["opf"]}}}meta'):
                 if meta.get('name') == 'cover':
                     metadata.remove(meta)
 
