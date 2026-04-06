@@ -21,10 +21,6 @@ NAMESPACES = {
 for prefix, uri in NAMESPACES.items():
     ET.register_namespace(prefix, uri)
 
-NSMAP = {
-    'dc': 'http://purl.org/dc/elements/1.1/',
-    'opf': 'http://www.idpf.org/2007/opf',
-}
 
 
 class MetadataEditPlugin(BasePlugin):
@@ -97,10 +93,10 @@ class MetadataEditPlugin(BasePlugin):
 
                     opf_dir = os.path.dirname(opf_path)
 
-                    meta_cover = opf_root.find('.//opf:meta[@name="cover"]', NSMAP)
+                    meta_cover = opf_root.find('.//opf:meta[@name="cover"]', NAMESPACES)
                     if meta_cover is not None:
                         cover_id = meta_cover.get('content')
-                        cover_item = opf_root.find(f'.//opf:item[@id="{cover_id}"]', NSMAP)
+                        cover_item = opf_root.find(f'.//opf:item[@id="{cover_id}"]', NAMESPACES)
                         if cover_item is not None:
                             cover_href = cover_item.get('href')
                             cover_full_path = os.path.join(opf_dir, cover_href) if opf_dir else cover_href
@@ -111,7 +107,7 @@ class MetadataEditPlugin(BasePlugin):
                                 pass
 
                     if not metadata["cover"]:
-                        for item in opf_root.findall('.//opf:item', NSMAP):
+                        for item in opf_root.findall('.//opf:item', NAMESPACES):
                             href = item.get('href', '').lower()
                             if 'cover' in href and any(href.endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.webp']):
                                 cover_full_path = os.path.join(opf_dir, item.get('href')) if opf_dir else item.get('href')
