@@ -12,14 +12,16 @@ const props = defineProps({
   activeTool: String
 })
 
+import { useFileManager } from '../composables/useFileManager'
+import { useEpubProcess } from '../composables/useEpubProcess'
+
 // --- State ---
-const inputPaths = ref([])
-const outputPath = ref('')
+const { inputPaths, outputPath, handleFileDrop: handleEpubDrop, selectFile, removeFile, clearFiles, selectOutputPath } = useFileManager(toast, ['.epub'])
+const { loading, outputLog, appendLog, clearLog, runBackend } = useEpubProcess(toast)
+
 const selectedOperation = ref('')
 const fontPath = ref('')
 const regexPattern = ref('')
-const loading = ref(false)
-const outputLog = ref('')
 const operationCompleted = ref(false)
 
 // Font encrypt target selection state
@@ -61,13 +63,11 @@ const operationsMap = {
   encrypt: { label: '加密 EPUB', desc: '对 EPUB 文件进行 DRM 加密处理', details: '使用文件名混淆等方式对 EPUB 内容进行保护。', category: 'encrypt' },
   decrypt: { label: '解密 EPUB', desc: '移除 EPUB 文件的 DRM 加密', details: '解密受保护的 EPUB 文件，还原为可自由阅读的格式。', category: 'encrypt' },
   encrypt_font: { label: '字体加密', desc: '对 EPUB 内嵌字体进行混淆加密', details: '按照 EPUB 规范对内嵌字体进行 Adobe 或 IDPF 方式的混淆处理，防止字体被直接提取使用。', category: 'encrypt' },
-  reformat: { label: 'EPUB 重构', desc: '将 EPUB 重新构建为标准结构', details: '解包并按照标准规范重新打包 EPUB，修复文件结构错误，清理冗余文件，标准化文件名和目录结构（Sigil 规范）。', category: 'format' },
-  convert_version: { label: '版本转换', desc: 'EPUB2 与 EPUB3 相互转换', details: '在 EPUB2.0 和 EPUB3.0 规范之间进行转换。', category: 'format', hasMode: true, modes: [{ value: '3.0', label: '转为 EPUB3' }, { value: '2.0', label: '转为 EPUB2' }] },
+  reformat_convert: { label: '重构 / 转换', desc: 'EPUB重构与版本转换', details: '解包并重新构建EPUB结构规范，或者在 EPUB2.0 和 EPUB3.0 规范之间相互转换。', category: 'format', hasMode: true, modes: [{ value: 'reformat', label: '规范重构 (不改版本)' }, { value: '3.0', label: '转为 EPUB3' }, { value: '2.0', label: '转为 EPUB2' }] },
   convert_chinese: { label: '简繁转换', desc: '简体中文与繁体中文互转', details: '基于词组级别的精确转换，支持简转繁和繁转简双向转换。', category: 'format', hasMode: true, modes: [{ value: 's2t', label: '简体 → 繁体' }, { value: 't2s', label: '繁体 → 简体' }] },
   font_subset: { label: '字体子集化', desc: '精简 EPUB 内嵌字体，仅保留用到的字符', details: '分析 EPUB 内容中实际使用的字符，生成最小化的字体子集，可大幅缩减文件体积。', category: 'format' },
   view_opf: { label: 'OPF 查看', desc: '查看 EPUB 的 OPF 文件内容和内部结构', details: '从 EPUB 中提取 OPF 文件内容，以格式化 XML 形式展示，同时列出 EPUB 内部文件结构。', category: 'format' },
-  merge_epub: { label: '合并 EPUB', desc: '将多个 EPUB 文件合并为一个', details: '按指定顺序合并多个 EPUB 文件，自动处理资源冲突和目录合并。支持拖拽排序调整合并顺序。', category: 'format' },
-  split_epub: { label: '拆分 EPUB', desc: '按章节将 EPUB 拆分为多个文件', details: '扫描 EPUB 章节结构，选择拆分点后生成多个独立的 EPUB 文件。', category: 'format' },
+  split_merge_epub: { label: '拆分 / 合并', desc: '合并多个或按章拆分 EPUB', details: '将多个 EPUB 拖入列表合并为一个，或分析当前 EPUB 结构并指定拆分点生成多个拆分文件。', category: 'format', hasMode: true, modes: [{ value: 'split', label: '拆分 EPUB' }, { value: 'merge', label: '合并 EPUB' }] },
   img_compress: { label: '图片压缩', desc: '压缩 EPUB 中所有图片的体积', details: '支持 JPEG/PNG/WebP/BMP 全格式压缩。可调节 JPEG 和 WebP 的压缩质量，无透明度的 PNG 可转为 JPG 大幅减小体积，有透明度的 PNG 自动转为 PNG-8 二值透明。', category: 'image', hasCompressOptions: true },
   convert_image_format: { label: '图片格式转换', desc: '在图片和 WebP 格式之间互转', details: 'WebP 格式可大幅减小体积，传统图片格式兼容性更好。', category: 'image', hasMode: true, modes: [{ value: 'img_to_webp', label: '图片 → WebP' }, { value: 'webp_to_img', label: 'WebP → 图片' }] },
   phonetic: { label: '生僻字注音', desc: '为 EPUB 中的生僻字添加拼音注音', details: '自动识别生僻字并添加 Ruby 拼音标注，方便阅读生僻汉字。', category: 'annotate' },
@@ -97,28 +97,8 @@ const buttonSecondaryClass = buttonBaseClass + ' bg-gray-100 dark:bg-gray-700 te
 
 const fileName = (p) => p.split(/[\\/]/).pop()
 
-// --- Methods ---
-const handleEpubDrop = (pathsOrPath) => {
-  if (!pathsOrPath) return
-  const paths = Array.isArray(pathsOrPath) ? pathsOrPath : [pathsOrPath]
-  const epubPaths = paths.filter(p => typeof p === 'string' && p.toLowerCase().endsWith('.epub'))
-  if (epubPaths.length === 0) { toast?.error?.('请选择 EPUB 文件'); return }
-  const existing = new Set(inputPaths.value)
-  const newPaths = epubPaths.filter(p => !existing.has(p))
-  if (newPaths.length > 0) { inputPaths.value = [...inputPaths.value, ...newPaths]; toast?.success?.(`已添加 ${newPaths.length} 个文件`) }
-}
+// File Management logic moved to useFileManager
 
-const selectFile = async () => {
-  try { const paths = await window.go.main.App.SelectFiles(); if (paths && paths.length > 0) handleEpubDrop(paths) }
-  catch (err) { console.error(err) }
-}
-const removeFile = (index) => { inputPaths.value.splice(index, 1) }
-const clearFiles = () => { inputPaths.value = [] }
-
-const selectOutputPath = async () => {
-  try { const path = await window.go.main.App.SelectDirectory(); if (path) { outputPath.value = path; toast?.success?.('已设置输出目录') } }
-  catch (err) { console.error(err) }
-}
 const selectFontFile = async () => {
   try { const path = await window.go.main.App.SelectFile(); if (path) { fontPath.value = path; toast?.success?.('已选择字体文件') } }
   catch (err) { console.error(err) }
@@ -206,9 +186,12 @@ const reorderMergeFiles = (fromIdx, toIdx) => {
 }
 
 const runTool = async () => {
-  if (inputPaths.value.length === 0 || !selectedOperation.value) { toast?.warning?.('请先选择输入文件'); return }
+  if (selectedOperation.value !== 'split_merge_epub' || selectedMode.value !== 'merge') {
+    if (inputPaths.value.length === 0 || !selectedOperation.value) { toast?.warning?.('请先选择输入文件'); return }
+  }
+  
   if (selectedOperation.value === 'encrypt_font' && !showFontTargetSelector.value) { await scanFontTargets(); return }
-  if (selectedOperation.value === 'split_epub' && !showSplitTargetSelector.value) { await scanSplitTargets(); return }
+  if (selectedOperation.value === 'split_merge_epub' && selectedMode.value === 'split' && !showSplitTargetSelector.value) { await scanSplitTargets(); return }
 
   // view_opf
   if (selectedOperation.value === 'view_opf') {
@@ -217,20 +200,20 @@ const runTool = async () => {
     outputLog.value = `▶ OPF 查看: ${name}\n${'─'.repeat(40)}\n`
     const args = ['--plugin', 'epub_tool', '--operation', 'view_opf', '--input-path', filePath]
     try {
-      const result = await window.go.main.App.RunBackend(args)
-      if (result.stderr) outputLog.value += result.stderr + '\n'
-      if (result.stdout) {
-        const opfMatch = result.stdout.match(/=== OPF Content ===([\s\S]*?)(?==== File List ===|$)/)
-        if (opfMatch) opfContent.value = opfMatch[1].trim()
-        outputLog.value += result.stdout + '\n'
-      }
-      outputLog.value += `\n✅ OPF 查看完成\n`; toast?.success?.('OPF 查看完成')
-    } catch (err) { outputLog.value += `❌ 失败: ${String(err)}\n`; toast?.error?.('OPF 查看失败') }
-    loading.value = false; operationCompleted.value = true; return
+      await runBackend(args, (result) => {
+        if (result.stdout) {
+          const opfMatch = result.stdout.match(/=== OPF Content ===([\s\S]*?)(?==== File List ===|$)/)
+          if (opfMatch) opfContent.value = opfMatch[1].trim()
+        }
+        appendLog(`\n✅ OPF 查看完成\n`)
+        toast?.success?.('OPF 查看完成')
+      })
+    } catch (err) { toast?.error?.('OPF 查看失败') }
+    operationCompleted.value = true; return
   }
 
-  // merge_epub
-  if (selectedOperation.value === 'merge_epub') {
+  // split_merge_epub: merge
+  if (selectedOperation.value === 'split_merge_epub' && selectedMode.value === 'merge') {
     if (mergeFiles.value.length < 2) { toast?.warning?.('请至少添加 2 个 EPUB 文件'); return }
     loading.value = true
     outputLog.value = `▶ 合并 EPUB（共 ${mergeFiles.value.length} 个文件）\n${'─'.repeat(40)}\n`
@@ -239,16 +222,15 @@ const runTool = async () => {
     const args = ['--plugin', 'epub_tool', '--operation', 'merge', '--input-paths', ...mergeFiles.value]
     if (outputPath.value) args.push('--output-path', outputPath.value)
     try {
-      const result = await window.go.main.App.RunBackend(args)
-      if (result.stderr) outputLog.value += result.stderr + '\n'
-      if (result.stdout) outputLog.value += result.stdout + '\n'
-      outputLog.value += `\n✅ 合并完成\n`; toast?.success?.('EPUB 合并完成')
-    } catch (err) { outputLog.value += `❌ 合并失败: ${String(err)}\n`; toast?.error?.('EPUB 合并失败') }
-    loading.value = false; operationCompleted.value = true; return
+      await runBackend(args, () => {
+        appendLog(`\n✅ 合并完成\n`); toast?.success?.('EPUB 合并完成')
+      })
+    } catch (err) { toast?.error?.('EPUB 合并失败') }
+    operationCompleted.value = true; return
   }
 
-  // split_epub
-  if (selectedOperation.value === 'split_epub' && showSplitTargetSelector.value) {
+  // split_merge_epub: split
+  if (selectedOperation.value === 'split_merge_epub' && selectedMode.value === 'split' && showSplitTargetSelector.value) {
     if (selectedSplitPoints.value.length === 0) { toast?.warning?.('请至少选择一个拆分点'); return }
     loading.value = true
     const filePath = inputPaths.value[0]; const name = fileName(filePath)
@@ -258,12 +240,11 @@ const runTool = async () => {
     const args = ['--plugin', 'epub_tool', '--operation', 'split', '--input-path', filePath, '--split-points', splitPointsStr]
     if (outputPath.value) args.push('--output-path', outputPath.value)
     try {
-      const result = await window.go.main.App.RunBackend(args)
-      if (result.stderr) outputLog.value += result.stderr + '\n'
-      if (result.stdout) outputLog.value += result.stdout + '\n'
-      outputLog.value += `\n✅ 拆分完成\n`; toast?.success?.('EPUB 拆分完成')
-    } catch (err) { outputLog.value += `❌ 拆分失败: ${String(err)}\n`; toast?.error?.('EPUB 拆分失败') }
-    loading.value = false; operationCompleted.value = true
+      await runBackend(args, () => {
+        appendLog(`\n✅ 拆分完成\n`); toast?.success?.('EPUB 拆分完成')
+      })
+    } catch (err) { toast?.error?.('EPUB 拆分失败') }
+    operationCompleted.value = true
     showSplitTargetSelector.value = false; splitTargets.value = []; selectedSplitPoints.value = []; return
   }
 
@@ -283,28 +264,32 @@ const runTool = async () => {
       if (selectedFontFamilies.value.length > 0) args.push('--target-font-families', ...selectedFontFamilies.value)
       if (selectedXhtmlFiles.value.length > 0) args.push('--target-xhtml-files', ...selectedXhtmlFiles.value)
     }
-    if (['convert_chinese', 'convert_image_format'].includes(selectedOperation.value)) {
-      const opIndex = args.indexOf('--operation'); if (opIndex > -1) args[opIndex + 1] = selectedMode.value
-    } else if (selectedOperation.value === 'convert_version') { args.push('--target-version', selectedMode.value) }
+    
+    if (selectedOperation.value === 'reformat_convert') {
+      if (selectedMode.value === 'reformat') {
+        args[opIndex + 1] = 'reformat'
+      } else {
+        args[opIndex + 1] = 'convert_version'
+        args.push('--target-version', selectedMode.value)
+      }
+    } else if (['convert_chinese', 'convert_image_format'].includes(selectedOperation.value)) {
+      if (opIndex > -1) args[opIndex + 1] = selectedMode.value
+    }
     if (selectedOperation.value === 'img_compress') {
       args.push('--jpeg-quality', String(jpegQuality.value), '--webp-quality', String(webpQuality.value), '--png-to-jpg', pngToJpg.value ? 'true' : 'false')
     }
     try {
-      const result = await window.go.main.App.RunBackend(args)
-      if (result.stderr) outputLog.value += result.stderr + '\n'
-      if (result.stdout) outputLog.value += result.stdout + '\n'
-      outputLog.value += `  ✅ 完成\n`; successCount++
+      await runBackend(args, () => {
+        appendLog(`  ✅ 完成\n`); successCount++
+      }, () => {
+        failCount++
+      })
     } catch (err) {
-      const errStr = String(err)
-      if (errStr.includes('ZHANGYUE_DRM') || errStr.includes('zhangyue_drm')) {
-        outputLog.value += `  ⚠️ 该文件为掌阅(ZhangYue)DRM加密书籍，因版权保护原因不支持解密处理\n`
-        toast?.warning?.('检测到掌阅DRM加密，不支持解密')
-      } else { outputLog.value += `  ❌ 失败: ${errStr}\n` }
       failCount++
     }
   }
-  outputLog.value += `\n${'─'.repeat(40)}\n📊 执行结果: 成功 ${successCount}，失败 ${failCount}，共 ${total} 个文件\n`
-  loading.value = false; operationCompleted.value = true
+  appendLog(`\n${'─'.repeat(40)}\n📊 执行结果: 成功 ${successCount}，失败 ${failCount}，共 ${total} 个文件\n`)
+  operationCompleted.value = true
   if (selectedOperation.value === 'encrypt_font') {
     showFontTargetSelector.value = false; fontTargets.value = { font_families: [], xhtml_files: [] }
     selectedFontFamilies.value = []; selectedXhtmlFiles.value = []
@@ -322,7 +307,6 @@ const copyLog = async () => {
 const copyOpfContent = async () => {
   try { await navigator.clipboard.writeText(opfContent.value); toast?.success?.('已复制 OPF 内容到剪贴板') } catch { toast?.error?.('复制失败') }
 }
-const clearLog = () => { outputLog.value = '' }
 </script>
 
 <template>
@@ -345,7 +329,7 @@ const clearLog = () => { outputLog.value = '' }
       </div>
 
       <!-- File Selection -->
-      <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
+      <div v-show="!(selectedOperation === 'split_merge_epub' && selectedMode === 'merge')" class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
         <h2 class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">文件设置</h2>
         <div>
           <label class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
@@ -478,7 +462,7 @@ const clearLog = () => { outputLog.value = '' }
       />
 
       <!-- Merge EPUB File List -->
-      <MergeFileList v-if="selectedOperation === 'merge_epub'"
+      <MergeFileList v-if="selectedOperation === 'split_merge_epub' && selectedMode === 'merge'"
         :files="mergeFiles"
         @drop="handleMergeFileDrop"
         @select="selectMergeFiles"
@@ -488,7 +472,7 @@ const clearLog = () => { outputLog.value = '' }
       />
 
       <!-- Split EPUB Target Selector -->
-      <SplitTargetSelector v-if="selectedOperation === 'split_epub' && showSplitTargetSelector"
+      <SplitTargetSelector v-if="selectedOperation === 'split_merge_epub' && selectedMode === 'split' && showSplitTargetSelector"
         :targets="splitTargets"
         v-model:selectedPoints="selectedSplitPoints"
         @toggleAll="toggleAllSplitPoints"
@@ -502,9 +486,9 @@ const clearLog = () => { outputLog.value = '' }
         <button v-if="outputLog" @click="clearLog" class="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">清除日志</button>
         <div v-else></div>
         <button @click="runTool"
-          :disabled="loading || (selectedOperation === 'merge_epub' ? mergeFiles.length < 2 : selectedOperation === 'split_epub' && showSplitTargetSelector ? selectedSplitPoints.length === 0 : inputPaths.length === 0)"
+          :disabled="loading || (selectedOperation === 'split_merge_epub' && selectedMode === 'merge' ? mergeFiles.length < 2 : selectedOperation === 'split_merge_epub' && selectedMode === 'split' && showSplitTargetSelector ? selectedSplitPoints.length === 0 : inputPaths.length === 0)"
           :class="['inline-flex items-center px-6 py-2.5 text-sm font-medium rounded-lg shadow-sm text-white transition-all duration-200',
-            loading || (selectedOperation === 'merge_epub' ? mergeFiles.length < 2 : selectedOperation === 'split_epub' && showSplitTargetSelector ? selectedSplitPoints.length === 0 : inputPaths.length === 0)
+            loading || (selectedOperation === 'split_merge_epub' && selectedMode === 'merge' ? mergeFiles.length < 2 : selectedOperation === 'split_merge_epub' && selectedMode === 'split' && showSplitTargetSelector ? selectedSplitPoints.length === 0 : inputPaths.length === 0)
               ? 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'
               : 'bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 hover:shadow-md active:scale-[0.98]']"
         >
@@ -512,7 +496,7 @@ const clearLog = () => { outputLog.value = '' }
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
           </svg>
-          {{ loading ? '执行中...' : selectedOperation === 'merge_epub' ? `合并执行（${mergeFiles.length} 个文件）` : selectedOperation === 'split_epub' ? (showSplitTargetSelector ? `确认拆分（${selectedSplitPoints.length} 个拆分点）` : '扫描章节结构') : inputPaths.length > 1 ? `批量执行（${inputPaths.length} 个文件）` : '开始执行' }}
+          {{ loading ? '执行中...' : selectedOperation === 'split_merge_epub' && selectedMode === 'merge' ? `合并执行（${mergeFiles.length} 个文件）` : selectedOperation === 'split_merge_epub' && selectedMode === 'split' ? (showSplitTargetSelector ? `确认拆分（${selectedSplitPoints.length} 个拆分点）` : '扫描章节结构') : inputPaths.length > 1 ? `批量执行（${inputPaths.length} 个文件）` : '开始执行' }}
         </button>
       </div>
 

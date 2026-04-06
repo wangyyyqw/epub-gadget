@@ -2,11 +2,16 @@
 import Sidebar from './components/Sidebar.vue'
 import Dashboard from './components/Dashboard.vue'
 import Txt2Epub from './components/Txt2Epub.vue'
+import MetadataEditor from './components/MetadataEditor.vue'
 import EpubTools from './components/EpubTools.vue'
 import ToastContainer from './components/ToastContainer.vue'
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 
 const currentView = ref('dashboard')
+
+const isMetadataEditView = computed(() => {
+  return currentView.value === 'tool:metadata_edit'
+})
 
 // --- Theme Management ---
 const theme = ref(localStorage.getItem('theme') || 'auto')
@@ -81,6 +86,7 @@ const activeTool = computed(() => {
           <div class="max-w-4xl mx-auto px-8 py-2 pb-8">
             <Dashboard v-if="currentView === 'dashboard'" />
             <Txt2Epub v-else-if="currentView === 'txt2epub'" />
+            <MetadataEditor v-else-if="isMetadataEditView" :active-tool="currentView.split(':')[1]" />
             <EpubTools v-else-if="isEpubToolView" :active-tool="activeTool" />
             <div v-else class="flex items-center justify-center h-full text-gray-400">
               <div class="text-center">

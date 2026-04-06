@@ -7,6 +7,12 @@ import OutputLog from './shared/OutputLog.vue'
 
 const toast = inject('toast')
 
+let previewDebounceTimer = null
+const debounceGeneratePreview = (delay = 150) => {
+  if (previewDebounceTimer) clearTimeout(previewDebounceTimer)
+  previewDebounceTimer = setTimeout(generatePreview, delay)
+}
+
 // --- State ---
 const txtPath = ref('')
 const epubPath = ref('')
@@ -266,23 +272,23 @@ const generatePreview = async () => {
   finally { previewLoading.value = false }
 }
 
-const togglePattern = (pattern) => { pattern.enabled = !pattern.enabled; generatePreview() }
+const togglePattern = (pattern) => { pattern.enabled = !pattern.enabled; debounceGeneratePreview() }
 const movePatternUp = (index) => {
   if (index <= 0) return
   const temp = selectedPatterns.value[index].order
   selectedPatterns.value[index].order = selectedPatterns.value[index - 1].order
   selectedPatterns.value[index - 1].order = temp
-  selectedPatterns.value.sort((a, b) => a.order - b.order); generatePreview()
+  selectedPatterns.value.sort((a, b) => a.order - b.order); debounceGeneratePreview()
 }
 const movePatternDown = (index) => {
   if (index >= selectedPatterns.value.length - 1) return
   const temp = selectedPatterns.value[index].order
   selectedPatterns.value[index].order = selectedPatterns.value[index + 1].order
   selectedPatterns.value[index + 1].order = temp
-  selectedPatterns.value.sort((a, b) => a.order - b.order); generatePreview()
+  selectedPatterns.value.sort((a, b) => a.order - b.order); debounceGeneratePreview()
 }
-const selectAllPatterns = () => { selectedPatterns.value.forEach(p => p.enabled = true); generatePreview() }
-const deselectAllPatterns = () => { selectedPatterns.value.forEach(p => p.enabled = false); generatePreview() }
+const selectAllPatterns = () => { selectedPatterns.value.forEach(p => p.enabled = true); debounceGeneratePreview() }
+const deselectAllPatterns = () => { selectedPatterns.value.forEach(p => p.enabled = false); debounceGeneratePreview() }
 
 const runConversion = async () => {
   if (!txtPath.value || !epubPath.value || !title.value) {
@@ -372,15 +378,13 @@ const buttonSecondaryClass = buttonBaseClass + ' bg-gray-100 dark:bg-gray-700 te
                       <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   </div>
-                  <p class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {{ txtPath ? txtPath.split(/[\\/]/).pop() : '拖拽 TXT 文件到此处' }}
-                  </p>
+                  <p class="text-sm font-medium text-gray-700 dark:text-gray-300">拖拽 TXT 文件到此处</p>
                   <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">或点击选择文件</p>
                 </div>
               </FileDropZone>
-              <div v-if="txtPath" class="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-                <span class="text-xs text-gray-600 dark:text-gray-400 truncate flex-1 mr-2">{{ txtPath }}</span>
-                <button @click="txtPath = ''" class="text-gray-400 hover:text-red-500 transition-colors">
+              <div v-if="txtPath" class="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-900/50 rounded-lg group">
+                <span class="text-xs text-gray-600 dark:text-gray-400 truncate flex-1 mr-2" :title="txtPath">{{ txtPath.split(/[\\/]/).pop() }}</span>
+                <button @click="txtPath = ''" class="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100">
                   <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                   </svg>

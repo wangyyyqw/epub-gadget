@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
@@ -152,8 +153,6 @@ func (a *App) OpenLogFile() error {
 	return cmd.Start()
 }
 
-
-
 // RunBackend executes the backend with arguments.
 // Returns BackendResult with separate stdout/stderr so frontend can handle them independently.
 func (a *App) RunBackend(args []string) (*BackendResult, error) {
@@ -162,27 +161,37 @@ func (a *App) RunBackend(args []string) (*BackendResult, error) {
 	// On Windows, write --patterns value to a temp file to avoid CLI encoding issues with Chinese characters.
 	// Replace --patterns <value> with --patterns-file <tempfile> in the args.
 	var tempPatternsFile string
+	argsCopy := make([]string, len(args))
+	copy(argsCopy, args)
 	if runtime.GOOS == "windows" {
-		for i := 0; i < len(args)-1; i++ {
-			if args[i] == "--patterns" {
-				patternsValue := args[i+1]
-				tmpFile, err := os.CreateTemp("", "epub-patterns-*.txt")
-				if err == nil {
-					_, writeErr := tmpFile.WriteString(patternsValue)
-					tmpFile.Close()
-					if writeErr == nil {
-						tempPatternsFile = tmpFile.Name()
-						args[i] = "--patterns-file"
-						args[i+1] = tempPatternsFile
-					} else {
-						os.Remove(tmpFile.Name())
+		for i := 0; i < len(argsCopy)-1; i++ {
+			if argsCopy[i] == "--patterns" {
+				patternsValue := argsCopy[i+1]
+				hasNonASCII := false
+				for _, c := range patternsValue {
+					if c > 127 {
+						hasNonASCII = true
+						break
+					}
+				}
+				if hasNonASCII {
+					tmpFile, err := os.CreateTemp("", "epub-patterns-*.txt")
+					if err == nil {
+						_, writeErr := tmpFile.WriteString(patternsValue)
+						tmpFile.Close()
+						if writeErr == nil {
+							tempPatternsFile = tmpFile.Name()
+							argsCopy[i] = "--patterns-file"
+							argsCopy[i+1] = tempPatternsFile
+						} else {
+							os.Remove(tmpFile.Name())
+						}
 					}
 				}
 				break
 			}
 		}
 	}
-	// Clean up temp file when done
 	if tempPatternsFile != "" {
 		defer os.Remove(tempPatternsFile)
 	}
@@ -194,7 +203,7 @@ func (a *App) RunBackend(args []string) (*BackendResult, error) {
 	debugLog("Binary path found: %s", binaryPath)
 
 	if binaryPath != "" {
-		cmd = exec.Command(binaryPath, args...)
+		cmd = exec.Command(binaryPath, argsCopy...)
 	} else {
 		ex, _ := os.Executable()
 		exPath := filepath.Dir(ex)
@@ -219,7 +228,7 @@ func (a *App) RunBackend(args []string) (*BackendResult, error) {
 		}
 
 		debugLog("Using Python script: %s", pythonScript)
-		cmdArgs := append([]string{pythonScript}, args...)
+		cmdArgs := append([]string{pythonScript}, argsCopy...)
 		pythonCmd := "python3"
 		if runtime.GOOS == "windows" {
 			pythonCmd = "python"
@@ -228,17 +237,40 @@ func (a *App) RunBackend(args []string) (*BackendResult, error) {
 	}
 
 	// Ensure UTF-8 encoding for subprocess (critical for Chinese characters in regex patterns on Windows)
-	cmd.Env = append(os.Environ(), "PYTHONIOENCODING=utf-8", "PYTHONUTF8=1")
+	cmd.Env = append(os.Environ(), "PYTHONIOENCODING=utf-8", "PYTHONUTF8=1", "PYTHONUNBUFFERED=1")
+
+	// Setup pipes for real-time streaming
+	stdoutR, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("创建 stdout 管道失败: %s", err)
+	}
+	stderrR, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, fmt.Errorf("创建 stderr 管道失败: %s", err)
+	}
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
 
 	// 启动进程
 	if err := cmd.Start(); err != nil {
 		return &BackendResult{}, fmt.Errorf("启动后端失败: %s", err)
 	}
+
+	streamOutput := func(scanner *bufio.Scanner, buf *bytes.Buffer, isError bool) {
+		for scanner.Scan() {
+			text := scanner.Text()
+			buf.WriteString(text + "\n")
+			// Emit real-time log event to frontend
+			wailsRuntime.EventsEmit(a.ctx, "backend_log", map[string]interface{}{
+				"text":    text,
+				"isError": isError,
+			})
+		}
+	}
+
+	go streamOutput(bufio.NewScanner(stdoutR), &stdout, false)
+	go streamOutput(bufio.NewScanner(stderrR), &stderr, true)
 
 	// 带超时等待，默认 5 分钟
 	done := make(chan error, 1)
@@ -247,7 +279,6 @@ func (a *App) RunBackend(args []string) (*BackendResult, error) {
 	}()
 
 	timeout := 5 * time.Minute
-	var err error
 	select {
 	case <-time.After(timeout):
 		if cmd.Process != nil {
@@ -275,6 +306,7 @@ func (a *App) SelectFile() (string, error) {
 		Title: "选择文件",
 	})
 }
+
 // SelectFiles opens a file dialog for selecting multiple files
 func (a *App) SelectFiles() ([]string, error) {
 	return wailsRuntime.OpenMultipleFilesDialog(a.ctx, wailsRuntime.OpenDialogOptions{
@@ -284,7 +316,6 @@ func (a *App) SelectFiles() ([]string, error) {
 		},
 	})
 }
-
 
 // SelectDirectory opens a directory dialog
 func (a *App) SelectDirectory() (string, error) {
@@ -335,4 +366,3 @@ func (a *App) DownloadDoubanCover(coverURL string) (string, error) {
 	}
 	return result.Stdout, nil
 }
-

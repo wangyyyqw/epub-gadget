@@ -13,6 +13,7 @@ from PIL import Image
 import io
 import re
 from urllib.parse import unquote, quote
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 try:
     from ..log import logwriter
@@ -234,40 +235,50 @@ def run(epub_src, output_path=None, jpeg_quality=85, webp_quality=80, png_to_jpg
             skip_count = 0
             total_saved = 0
 
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+            import threading
+            
             with zipfile.ZipFile(out_epub, 'w', zipfile.ZIP_DEFLATED) as zout:
+                image_arcnames = []
+                
+                # 先写入非图片文件
                 for arcname in namelist:
-                    data = zin.read(arcname)
-
                     if any(arcname.lower().endswith(ext) for ext in IMG_EXTS):
-                        new_data, new_ext, status, msg = process_image(
-                            data, arcname,
-                            jpeg_quality=jpeg_quality,
-                            webp_quality=webp_quality,
-                            png_to_jpg=png_to_jpg
-                        )
-
-                        if status == 'success' and new_data:
-                            processed_count += 1
-                            saved = len(data) - len(new_data)
-                            total_saved += saved
-                            logger.write(f"  {arcname}: {msg}")
-
-                            old_ext = os.path.splitext(arcname)[1].lower()
-                            new_ext_dot = f'.{new_ext}'
-                            if old_ext != new_ext_dot:
-                                new_arcname = os.path.splitext(arcname)[0] + new_ext_dot
-                                rename_map[arcname] = new_arcname
-                                zout.writestr(new_arcname, new_data)
-                            else:
-                                zout.writestr(arcname, new_data)
-                        else:
-                            if status == 'skip':
-                                skip_count += 1
-                            elif status == 'error':
-                                logger.write(f"  {arcname}: {msg}")
-                            zout.writestr(arcname, data)
+                        image_arcnames.append(arcname)
                     else:
-                        zout.writestr(arcname, data)
+                        zout.writestr(arcname, zin.read(arcname))
+                
+                def _process_one_image(arcname):
+                    data = zin.read(arcname)
+                    res = process_image(data, arcname, jpeg_quality, webp_quality, png_to_jpg)
+                    return arcname, data, res
+                
+                if image_arcnames:
+                    max_workers = min(os.cpu_count() or 4, len(image_arcnames))
+                    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                        futures = {executor.submit(_process_one_image, arc_name): arc_name for arc_name in image_arcnames}
+                        for future in as_completed(futures):
+                            arcname, data, (new_data, new_ext, status, msg) = future.result()
+                            if status == 'success' and new_data:
+                                processed_count += 1
+                                saved = len(data) - len(new_data)
+                                total_saved += saved
+                                logger.write(f"  {arcname}: {msg}")
+
+                                old_ext = os.path.splitext(arcname)[1].lower()
+                                new_ext_dot = f'.{new_ext}'
+                                if old_ext != new_ext_dot:
+                                    new_arcname = os.path.splitext(arcname)[0] + new_ext_dot
+                                    rename_map[arcname] = new_arcname
+                                    zout.writestr(new_arcname, new_data)
+                                else:
+                                    zout.writestr(arcname, new_data)
+                            else:
+                                if status == 'skip':
+                                    skip_count += 1
+                                elif status == 'error':
+                                    logger.write(f"  {arcname}: {msg}")
+                                zout.writestr(arcname, data)
 
             # 更新引用
             if rename_map:

@@ -15,12 +15,14 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from plugins.txt_to_epub import TxtToEpubPlugin
 from plugins.epub_tool.plugin import EpubToolPlugin
+from plugins.metadata_edit.plugin import MetadataEditPlugin
 
 def main():
     # 1. Initialize Plugins Registry
     plugins = {
         "txt2epub": TxtToEpubPlugin(),
-        "epub_tool": EpubToolPlugin()
+        "epub_tool": EpubToolPlugin(),
+        "metadata_edit": MetadataEditPlugin()
     }
     
     # 2. Determine which plugin to use

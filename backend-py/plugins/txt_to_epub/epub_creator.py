@@ -4,8 +4,7 @@ import sys
 import html
 import re
 import zipfile
-import tempfile
-import shutil
+import io
 from html import unescape as html_unescape
 from ebooklib import epub
 from typing import List, Dict, Any, Tuple, Union, Optional
@@ -19,61 +18,56 @@ def _safe_escape(text: str) -> str:
     return html.escape(text)
 
 
-def _downgrade_to_epub2(epub_path: str) -> None:
-    """将 ebooklib 生成的 EPUB 3.0 降级为 EPUB 2.0 标准。
-    
+def _downgrade_to_epub2_in_memory(epub_data: bytes) -> bytes:
+    """将 ebooklib 生成的 EPUB 3.0 降级为 EPUB 2.0 标准（内存操作，避免双重文件写入）。
+
     - OPF version 改为 2.0，移除 prefix 属性
     - 移除 dcterms:modified meta 和 EPUB 3 特有属性
     - 从 manifest/spine 中移除 nav.xhtml
     - 从 zip 中删除 nav.xhtml 文件
     """
-    tmp_fd, tmp_path = tempfile.mkstemp(suffix='.epub')
-    os.close(tmp_fd)
+    tmp_buf = io.BytesIO()
+    with zipfile.ZipFile(io.BytesIO(epub_data), 'r') as zin, \
+         zipfile.ZipFile(tmp_buf, 'w', zipfile.ZIP_DEFLATED) as zout:
+        for item in zin.infolist():
+            data = zin.read(item.filename)
 
-    try:
-        with zipfile.ZipFile(epub_path, 'r') as zin, \
-             zipfile.ZipFile(tmp_path, 'w', zipfile.ZIP_DEFLATED) as zout:
-            for item in zin.infolist():
-                data = zin.read(item.filename)
+            if item.filename.lower().endswith('nav.xhtml'):
+                continue
 
-                # 跳过 nav.xhtml
-                if item.filename.lower().endswith('nav.xhtml'):
-                    continue
+            if item.filename.lower().endswith('.opf'):
+                text = data.decode('utf-8')
+                text = re.sub(r'version="3\.0"', 'version="2.0"', text)
+                text = re.sub(r'\s+prefix="[^"]*"', '', text)
+                text = re.sub(
+                    r'<meta\s+property="dcterms:modified"[^>]*>[^<]*</meta>\s*',
+                    '', text
+                )
+                text = re.sub(
+                    r'<item[^>]*href="[^"]*nav\.xhtml"[^>]*/>\s*',
+                    '', text
+                )
+                text = re.sub(
+                    r'<itemref[^>]*idref="nav"[^>]*/>\s*',
+                    '', text
+                )
+                data = text.encode('utf-8')
 
-                if item.filename.lower().endswith('.opf'):
-                    text = data.decode('utf-8')
-                    # version="3.0" -> version="2.0"
-                    text = re.sub(r'version="3\.0"', 'version="2.0"', text)
-                    # 移除 prefix 属性
-                    text = re.sub(r'\s+prefix="[^"]*"', '', text)
-                    # 移除 dcterms:modified meta
-                    text = re.sub(
-                        r'<meta\s+property="dcterms:modified"[^>]*>[^<]*</meta>\s*',
-                        '', text
-                    )
-                    # 从 manifest 中移除 nav.xhtml 的 item
-                    text = re.sub(
-                        r'<item[^>]*href="[^"]*nav\.xhtml"[^>]*/>\s*',
-                        '', text
-                    )
-                    # 从 spine 中移除 nav 的 itemref
-                    text = re.sub(
-                        r'<itemref[^>]*idref="nav"[^>]*/>\s*',
-                        '', text
-                    )
-                    data = text.encode('utf-8')
+            if item.filename == 'mimetype':
+                zout.writestr(item.filename, data, compress_type=zipfile.ZIP_STORED)
+            else:
+                zout.writestr(item.filename, data)
 
-                # mimetype 必须不压缩
-                if item.filename == 'mimetype':
-                    zout.writestr(item.filename, data, compress_type=zipfile.ZIP_STORED)
-                else:
-                    zout.writestr(item.filename, data)
+    return tmp_buf.getvalue()
 
-        shutil.move(tmp_path, epub_path)
-    except Exception:
-        if os.path.exists(tmp_path):
-            os.unlink(tmp_path)
-        raise
+
+def _downgrade_to_epub2(epub_path: str) -> None:
+    """将 ebooklib 生成的 EPUB 3.0 降级为 EPUB 2.0 标准（磁盘操作，仅用于兼容模式）。"""
+    with open(epub_path, 'rb') as f:
+        epub_data = f.read()
+    epub_data = _downgrade_to_epub2_in_memory(epub_data)
+    with open(epub_path, 'wb') as f:
+        f.write(epub_data)
 
 def create_epub(
     output_path: str,
@@ -268,9 +262,11 @@ def create_epub(
     book.spine = spine
     
     try:
-        epub.write_epub(output_path, book)
-        # 降级为 EPUB 2.0
-        _downgrade_to_epub2(output_path)
+        output_buffer = io.BytesIO()
+        epub.write_epub(output_buffer, book)
+        epub_bytes = _downgrade_to_epub2_in_memory(output_buffer.getvalue())
+        with open(output_path, 'wb') as f:
+            f.write(epub_bytes)
         if os.path.exists(output_path):
             file_size = os.path.getsize(output_path)
             print(f"SUCCESS: {output_path} ({file_size} bytes)", file=sys.stderr)

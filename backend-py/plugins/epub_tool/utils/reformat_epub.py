@@ -731,52 +731,53 @@ class EpubTool:
                 "OEBPS/Misc/" + new_name, other, zipfile.ZIP_DEFLATED
             )
         # OPF
-        manifest_text = "<manifest>"
+        manifest_parts = ["<manifest>"]
 
         for id, href, mime, prop in self.manifest_list:
             bkpath = get_bookpath(href, self.opfpath)
             prop_ = ' properties="' + prop + '"' if prop else ""
             if mime == "application/xhtml+xml":
                 filename = re_path_map["text"][bkpath]
-                manifest_text += '\n    <item id="{id}" href="{href}" media-type="{mime}"{prop}/>'.format(
+                manifest_parts.append('<item id="{id}" href="{href}" media-type="{mime}"{prop}/>'.format(
                     id=id, href="Text/" + filename, mime=mime, prop=prop_
-                )
+                ))
             elif mime == "text/css":
                 filename = re_path_map["css"][bkpath]
-                manifest_text += '\n    <item id="{id}" href="{href}" media-type="{mime}"{prop}/>'.format(
+                manifest_parts.append('<item id="{id}" href="{href}" media-type="{mime}"{prop}/>'.format(
                     id=id, href="Styles/" + filename, mime=mime, prop=prop_
-                )
+                ))
             elif "image/" in mime:
                 filename = re_path_map["image"][bkpath]
-                manifest_text += '\n    <item id="{id}" href="{href}" media-type="{mime}"{prop}/>'.format(
+                manifest_parts.append('<item id="{id}" href="{href}" media-type="{mime}"{prop}/>'.format(
                     id=id, href="Images/" + filename, mime=mime, prop=prop_
-                )
+                ))
             elif "font/" in mime or href.lower().endswith((".ttf", ".otf", ".woff")):
                 filename = re_path_map["font"][bkpath]
-                manifest_text += '\n    <item id="{id}" href="{href}" media-type="{mime}"{prop}/>'.format(
+                manifest_parts.append('<item id="{id}" href="{href}" media-type="{mime}"{prop}/>'.format(
                     id=id, href="Fonts/" + filename, mime=mime, prop=prop_
-                )
+                ))
             elif "audio/" in mime:
                 filename = re_path_map["audio"][bkpath]
-                manifest_text += '\n    <item id="{id}" href="{href}" media-type="{mime}"{prop}/>'.format(
+                manifest_parts.append('<item id="{id}" href="{href}" media-type="{mime}"{prop}/>'.format(
                     id=id, href="Audio/" + filename, mime=mime, prop=prop_
-                )
+                ))
             elif "video/" in mime:
                 filename = re_path_map["video"][bkpath]
-                manifest_text += '\n    <item id="{id}" href="{href}" media-type="{mime}"{prop}/>'.format(
+                manifest_parts.append('<item id="{id}" href="{href}" media-type="{mime}"{prop}/>'.format(
                     id=id, href="Video/" + filename, mime=mime, prop=prop_
-                )
+                ))
             elif id == self.tocid:
-                manifest_text += '\n    <item id="{id}" href="toc.ncx" media-type="application/x-dtbncx+xml"/>'.format(
+                manifest_parts.append('<item id="{id}" href="toc.ncx" media-type="application/x-dtbncx+xml"/>'.format(
                     id=id
-                )
+                ))
             else:
                 filename = re_path_map["other"][bkpath]
-                manifest_text += '\n    <item id="{id}" href="{href}" media-type="{mime}"{prop}/>'.format(
+                manifest_parts.append('<item id="{id}" href="{href}" media-type="{mime}"{prop}/>'.format(
                     id=id, href="Misc/" + filename, mime=mime, prop=prop_
-                )
+                ))
 
-        manifest_text += "\n  </manifest>"
+        manifest_parts.append("  </manifest>")
+        manifest_text = "\n    ".join(manifest_parts) + "\n"
         opf = re.sub(r"(?s)<manifest.*?>.*?</manifest>", manifest_text, self.opf, 1)
 
         def re_refer(match):

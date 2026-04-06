@@ -32,9 +32,9 @@ def detect_encoding(file_path: str, verbose: bool = True) -> str:
     if encoding and confidence >= 0.7:
         return encoding
     
-    # Low confidence or None: try fallback chain (utf-8 → gbk → utf-16)
-    # gbk 在 utf-16 前面，因为中文 TXT 文件 GBK 编码更常见
-    for fallback in ('utf-8', 'gbk', 'utf-16'):
+    # Low confidence or None: try fallback chain (gbk → utf-8 → utf-16)
+    # 中文 TXT 文件 GBK 编码更常见，优先尝试
+    for fallback in ('gbk', 'utf-8', 'utf-16'):
         try:
             rawdata.decode(fallback)
             if verbose:
