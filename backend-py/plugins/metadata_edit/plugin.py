@@ -7,6 +7,7 @@ import shutil
 import tempfile
 import uuid
 import re
+import base64
 from xml.etree import ElementTree as ET
 from PIL import Image
 from core.plugin_base import BasePlugin
@@ -105,7 +106,6 @@ class MetadataEditPlugin(BasePlugin):
                             cover_full_path = os.path.join(opf_dir, cover_href) if opf_dir else cover_href
                             try:
                                 cover_data = zf.read(cover_full_path)
-                                import base64
                                 metadata["cover"] = f"data:image/{cover_full_path.split('.')[-1]};base64,{base64.b64encode(cover_data).decode()}"
                             except:
                                 pass
@@ -117,7 +117,6 @@ class MetadataEditPlugin(BasePlugin):
                                 cover_full_path = os.path.join(opf_dir, item.get('href')) if opf_dir else item.get('href')
                                 try:
                                     cover_data = zf.read(cover_full_path)
-                                    import base64
                                     metadata["cover"] = f"data:image/{href.split('.')[-1]};base64,{base64.b64encode(cover_data).decode()}"
                                     break
                                 except:

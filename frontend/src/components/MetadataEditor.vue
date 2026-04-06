@@ -99,6 +99,7 @@ const loadMetadata = async (epubPath) => {
     }
   } catch (e) {
     console.error('Failed to load metadata:', e)
+    toast?.error('读取元数据失败: ' + e.message)
   }
 }
 
