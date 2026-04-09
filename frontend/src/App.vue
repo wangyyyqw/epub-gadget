@@ -67,28 +67,28 @@ const activeTool = computed(() => {
 
 <template>
   <ToastContainer>
-    <div class="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans antialiased transition-colors duration-200">
+    <div class="flex h-screen min-h-0 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans antialiased transition-colors duration-200">
       <!-- Sidebar -->
       <Sidebar 
-        @change-view="(view) => currentView = view" 
+        @change-view="(view) => (currentView = view)" 
         :current-view="currentView"
         :current-theme="theme"
         @toggle-theme="toggleTheme"
       />
 
       <!-- Main Content -->
-      <main class="flex-1 flex flex-col min-w-0 overflow-hidden bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+      <main class="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
         <!-- Window Drag Region (Right) -->
         <div class="h-10 w-full drag-region flex-shrink-0"></div>
 
-        <!-- Scrollable Area -->
-        <div class="flex-1 overflow-auto">
-          <div class="max-w-4xl mx-auto px-8 py-2 pb-8">
+        <!-- Scrollable Area：min-h-0 避免嵌套 flex 下子项 min-height:auto 撑破布局，Wails/WebKit 下会出现主区域空白 -->
+        <div class="flex-1 min-h-0 overflow-auto">
+          <div class="max-w-4xl mx-auto px-8 py-2 pb-8 min-h-0">
             <Dashboard v-if="currentView === 'dashboard'" />
             <Txt2Epub v-else-if="currentView === 'txt2epub'" />
-            <MetadataEditor v-else-if="isMetadataEditView" :active-tool="currentView.split(':')[1]" />
+            <MetadataEditor v-else-if="isMetadataEditView" :active-tool="activeTool" />
             <EpubTools v-else-if="isEpubToolView" :active-tool="activeTool" />
-            <div v-else class="flex items-center justify-center h-full text-gray-400">
+            <div v-else class="flex flex-col items-center justify-center min-h-[40vh] py-16 text-gray-400">
               <div class="text-center">
                 <svg class="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />

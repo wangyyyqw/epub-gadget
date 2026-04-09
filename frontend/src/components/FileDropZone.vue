@@ -10,6 +10,7 @@ const props = defineProps({
 
 const emit = defineEmits(['drop', 'click'])
 const isDragging = ref(false)
+let wailsDropRegistered = false
 
 const onDrop = (x, y, paths) => {
   if (props.disabled || !paths || paths.length === 0) return
@@ -26,8 +27,18 @@ const onDrop = (x, y, paths) => {
   emit('drop', props.multiple ? filtered : filtered[0])
 }
 
-onMounted(() => { OnFileDrop(onDrop, true) })
-onUnmounted(() => { OnFileDropOff() })
+onMounted(() => {
+  if (typeof window !== 'undefined' && window.runtime?.OnFileDrop) {
+    OnFileDrop(onDrop, true)
+    wailsDropRegistered = true
+  }
+})
+onUnmounted(() => {
+  if (wailsDropRegistered && typeof window !== 'undefined' && window.runtime?.OnFileDropOff) {
+    OnFileDropOff()
+    wailsDropRegistered = false
+  }
+})
 
 const handleDragOver = (e) => { if (props.disabled) return; e.preventDefault(); e.stopPropagation(); isDragging.value = true }
 const handleDragLeave = (e) => { if (props.disabled) return; e.preventDefault(); e.stopPropagation(); isDragging.value = false }

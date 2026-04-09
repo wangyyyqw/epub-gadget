@@ -215,7 +215,8 @@ const scanChapters = async () => {
   scanning.value = true
   outputLog.value = '▶ 正在扫描章节结构...\n'
   scanResults.value = null; selectedPatterns.value = []; chapterPreview.value = []
-  const args = ['--plugin', 'txt2epub', '--txt-path', txtPath.value, '--epub-path', '/dev/null', '--title', 'scan', '--scan']
+  const nullPath = txtPath.value // scan mode doesn't write output, use input path as placeholder
+  const args = ['--plugin', 'txt2epub', '--txt-path', txtPath.value, '--epub-path', nullPath, '--title', 'scan', '--scan']
   try {
     const result = await window.go.main.App.RunBackend(args)
     if (result.stderr) outputLog.value += result.stderr + '\n'

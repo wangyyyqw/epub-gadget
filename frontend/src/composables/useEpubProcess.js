@@ -53,7 +53,7 @@ export function useEpubProcess(toast) {
     } finally {
       loading.value = false
       if (unlistener) {
-        window.runtime.EventsOff(eventName)
+        unlistener()
       }
     }
   }

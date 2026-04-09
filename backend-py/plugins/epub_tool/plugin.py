@@ -8,7 +8,7 @@ from .utils import encrypt_epub, decrypt_epub, reformat_epub, \
     chinese_convert, font_subset, img_compress, img_to_webp, \
     webp_to_img, phonetic_notation, pinyin_annotate, \
     yuewei_to_duokan, zhangyue_to_duokan, encrypt_font, download_web_images, regex_comment, \
-    footnote_to_comment, convert_version, view_opf, merge_epub, split_epub
+    footnote_to_comment, convert_version, view_opf, merge_epub, split_epub, ad_clean
 
 class EpubToolPlugin(BasePlugin):
     @property
@@ -25,7 +25,7 @@ class EpubToolPlugin(BasePlugin):
             "font_subset", "img_compress", "img_to_webp", 
             "webp_to_img", "phonetic", "yuewei", "zhangyue", "download_images", "comment", "footnote_conv",
             "convert_version", "view_opf",
-            "merge", "split", "list_split_targets"
+            "merge", "split", "list_split_targets", "ad_clean"
         ], required=True, help="Operation to perform")
         parser.add_argument("--target-version", choices=["2.0", "3.0"], default="3.0", help="Target EPUB version")
         parser.add_argument("--input-path", help="Path to input EPUB file")
@@ -39,6 +39,7 @@ class EpubToolPlugin(BasePlugin):
         parser.add_argument("--jpeg-quality", type=int, default=85, help="JPEG compression quality (1-100)")
         parser.add_argument("--webp-quality", type=int, default=80, help="WebP compression quality (1-100)")
         parser.add_argument("--png-to-jpg", choices=["true", "false"], default="true", help="Convert non-transparent PNG to JPG")
+        parser.add_argument("--ad-patterns", help="Ad cleaning patterns in format: pattern1|||replacement1|||PATTERNS|||pattern2|||replacement2")
 
     def run(self, args: argparse.Namespace):
         # merge uses --input-paths, other operations use --input-path
@@ -130,6 +131,11 @@ class EpubToolPlugin(BasePlugin):
             elif args.operation == "split":
                 points = [int(x) for x in args.split_points.split(",")]
                 result = split_epub.run(args.input_path, output_dir, points)
+            elif args.operation == "ad_clean":
+                if not args.ad_patterns:
+                    print("ERROR: --ad-patterns is required for ad_clean operation", file=sys.stderr)
+                    sys.exit(1)
+                result = ad_clean.run(args.input_path, output_dir, args.ad_patterns)
             
             if result == 0:
                 print("SUCCESS", file=sys.stderr)

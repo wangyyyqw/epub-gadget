@@ -57,6 +57,7 @@ const toolGroups = [
     items: [
       { id: 'tool:yuewei', label: '阅微→多看', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
       { id: 'tool:zhangyue', label: '掌阅→多看', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
+      { id: 'tool:ad_clean', label: '广告净化', icon: 'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z' },
     ]
   },
 ]
@@ -74,7 +75,7 @@ const isActive = (id) => props.currentView === id
 </script>
 
 <template>
-  <aside class="w-56 bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl flex flex-col h-full border-r border-gray-200/50 dark:border-gray-700/50 select-none transition-all duration-300">
+  <aside class="w-56 min-h-0 bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl flex flex-col h-full border-r border-gray-200/50 dark:border-gray-700/50 select-none transition-all duration-300">
     <div class="h-10 drag-region flex-shrink-0"></div>
 
     <div class="px-4 pb-4 flex-shrink-0">
