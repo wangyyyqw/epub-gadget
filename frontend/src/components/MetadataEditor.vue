@@ -17,6 +17,7 @@ const outputPath = ref('')
 
 const metadata = ref({
   title: '',
+  subtitle: '',
   author: '',
   language: 'zh-CN',
   publisher: '',
@@ -40,7 +41,7 @@ const languages = [
 const resetState = () => {
   inputPaths.value = []
   outputPath.value = ''
-  metadata.value = { title: '', author: '', language: 'zh-CN', publisher: '', description: '', identifier: '', rights: '' }
+  metadata.value = { title: '', subtitle: '', author: '', language: 'zh-CN', publisher: '', description: '', identifier: '', rights: '' }
   coverImage.value = null
   coverPreview.value = ''
   removeCover.value = false
@@ -85,6 +86,7 @@ const loadMetadata = async (epubPath) => {
         const data = JSON.parse(jsonStr)
         metadata.value = {
           title: data.title || '',
+          subtitle: data.subtitle || '',
           author: data.author || '',
           language: data.language || 'zh-CN',
           publisher: data.publisher || '',
@@ -230,8 +232,13 @@ const applyMetadata = async () => {
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">书名</label>
-            <input v-model="metadata.title" type="text" placeholder="请输入书名"
+            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">主标题</label>
+            <input v-model="metadata.title" type="text" placeholder="请输入主标题"
+              class="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 focus:border-indigo-400 outline-none transition-all" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">副标题</label>
+            <input v-model="metadata.subtitle" type="text" placeholder="请输入副标题（可选）"
               class="w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 focus:border-indigo-400 outline-none transition-all" />
           </div>
           <div>

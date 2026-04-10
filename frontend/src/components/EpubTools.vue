@@ -56,51 +56,126 @@ let adPatternIdCounter = 3
 const adPresets = [
   {
     label: '通用广告词',
-    desc: '广告/推广/赞助',
+    desc: '广告/推广/赞助等通用词汇',
     items: [
       { pattern: '.*广告.*', replacement: '', enabled: true },
       { pattern: '.*推广.*', replacement: '', enabled: true },
       { pattern: '.*赞助.*', replacement: '', enabled: true },
-    ]
-  },
-  {
-    label: '网址链接',
-    desc: 'http(s) www 链接',
-    items: [
-      { pattern: 'https?://[^\\s\\n]+', replacement: '', enabled: true },
-      { pattern: 'www\\.[a-zA-Z0-9\\-]+\\.[a-zA-Z]+[^\\s\\n]*', replacement: '', enabled: true },
+      { pattern: '.*今日推荐.*', replacement: '', enabled: true },
+      { pattern: '.*热门小说.*', replacement: '', enabled: true },
+      { pattern: '.*免费阅读.*', replacement: '', enabled: true },
+      { pattern: '.*限时优惠.*', replacement: '', enabled: true },
+      { pattern: '.*APP.*专享.*', replacement: '', enabled: true },
     ]
   },
   {
     label: '小说站引流',
-    desc: '正版/全本/公众号',
+    desc: '各小说站的推广引流信息',
     items: [
       { pattern: '.*正版免费阅读.*', replacement: '', enabled: true },
       { pattern: '.*全本下载.*', replacement: '', enabled: true },
-      { pattern: '.*关注.*公众号.*', replacement: '', enabled: true },
-      { pattern: '.*加入.*VIP.*', replacement: '', enabled: true },
       { pattern: '.*纵横中文网.*', replacement: '', enabled: true },
       { pattern: '.*起点中文网.*', replacement: '', enabled: true },
+      { pattern: '.*创世中文网.*', replacement: '', enabled: true },
+      { pattern: '.*飞卢小说网.*', replacement: '', enabled: true },
+      { pattern: '.*晋江文学城.*', replacement: '', enabled: true },
+      { pattern: '.*红袖添香.*', replacement: '', enabled: true },
+      { pattern: '.*17K小说网.*', replacement: '', enabled: true },
+      { pattern: '.*番茄小说.*', replacement: '', enabled: true },
+      { pattern: '.*七猫免费小说.*', replacement: '', enabled: true },
+      { pattern: '.*加入VIP.*', replacement: '', enabled: true },
+      { pattern: '.*首发.*站.*', replacement: '', enabled: true },
+      { pattern: '.*请访问.*', replacement: '', enabled: true },
+      { pattern: '.*看更多.*', replacement: '', enabled: true },
+    ]
+  },
+  {
+    label: '社交媒体引流',
+    desc: '微信/QQ/微博等社交平台引流',
+    items: [
+      { pattern: '.*微信公众号.*', replacement: '', enabled: true },
+      { pattern: '.*关注.*公众号.*', replacement: '', enabled: true },
+      { pattern: '.*QQ群.*', replacement: '', enabled: true },
+      { pattern: '.*QQ号.*', replacement: '', enabled: true },
+      { pattern: '微信.*搜索.*', replacement: '', enabled: true },
+      { pattern: '.*微博.*@.*', replacement: '', enabled: true },
+    ]
+  },
+  {
+    label: '网址链接',
+    desc: 'http(s)/www/邮箱等链接',
+    items: [
+      { pattern: 'https?://[^\\s\\n]+', replacement: '', enabled: true },
+      { pattern: 'www\\.[a-zA-Z0-9\\-]+\\.[a-zA-Z]+[^\\s\\n]*', replacement: '', enabled: true },
+      { pattern: '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}', replacement: '', enabled: true },
+      { pattern: 'ftp://[^\\s\\n]+', replacement: '', enabled: true },
+      { pattern: 'magnet:[^\\s\\n]+', replacement: '', enabled: true },
     ]
   },
   {
     label: '章末水话',
-    desc: '本章完/求票/未完待续',
+    desc: '求票/求收藏/打赏等章末请求',
     items: [
       { pattern: '本章完.*', replacement: '', enabled: true },
       { pattern: '未完待续.*', replacement: '', enabled: true },
       { pattern: '.*求月票.*', replacement: '', enabled: true },
+      { pattern: '.*求推荐票.*', replacement: '', enabled: true },
       { pattern: '.*求推荐.*票?.*', replacement: '', enabled: true },
       { pattern: '.*求收藏.*', replacement: '', enabled: true },
-      { pattern: '.*打赏.*', replacement: '', enabled: true },
+      { pattern: '.*求打赏.*', replacement: '', enabled: true },
+      { pattern: '.*投票.*', replacement: '', enabled: true },
+      { pattern: '.*投推荐票.*', replacement: '', enabled: true },
+      { pattern: '.*盟主.*加更.*', replacement: '', enabled: true },
+      { pattern: '.*飘红.*加更.*', replacement: '', enabled: true },
     ]
   },
   {
     label: '排版清理',
-    desc: '多余空行/空格',
+    desc: '多余空行/空格/特殊字符',
     items: [
       { pattern: '\\n{3,}', replacement: '\\n\\n', enabled: true },
       { pattern: ' {2,}', replacement: ' ', enabled: true },
+      { pattern: '\\t+', replacement: '', enabled: true },
+      { pattern: '　{2,}', replacement: '　', enabled: true },
+      { pattern: '\\r\\n?', replacement: '\\n', enabled: true },
+      { pattern: '\\[page\\]', replacement: '', enabled: true },
+    ]
+  },
+  {
+    label: '书名号广告',
+    desc: '《》格式的推广信息',
+    items: [
+      { pattern: '《[^》]{1,8}》免费阅读', replacement: '', enabled: true },
+      { pattern: '《[^》]{1,8}》完整版', replacement: '', enabled: true },
+      { pattern: '《[^》]{1,8}》最新章节', replacement: '', enabled: true },
+      { pattern: '《[^》]{1,8}》全文阅读', replacement: '', enabled: true },
+      { pattern: '《[^》]{1,8}》txt下载', replacement: '', enabled: true },
+      { pattern: '看《[^》]{1,8}》.*', replacement: '', enabled: true },
+    ]
+  },
+  {
+    label: '错别字修正',
+    desc: '常见错别字自动修正',
+    items: [
+      { pattern: '发贴', replacement: '发帖', enabled: false },
+      { pattern: '帐号', replacement: '账号', enabled: false },
+      { pattern: '象话', replacement: '像话', enabled: false },
+      { pattern: '复印', replacement: '复习', enabled: false },
+      { pattern: '干死', replacement: '赶死', enabled: false },
+      { pattern: '其它', replacement: '其他', enabled: false },
+      { pattern: '里带', replacement: '地带', enabled: false },
+      { pattern: '子的', replacement: '', enabled: false },
+    ]
+  },
+  {
+    label: '全角符号清理',
+    desc: '全角空格/特殊标点清理',
+    items: [
+      { pattern: '　', replacement: '', enabled: true },
+      { pattern: '‘’“”', replacement: "''\"\"", enabled: false },
+      { pattern: '【】', replacement: '[]', enabled: false },
+      { pattern: '〈〉《》', replacement: '<>「」', enabled: false },
+      { pattern: '～', replacement: '~', enabled: false },
     ]
   },
 ]

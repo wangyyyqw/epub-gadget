@@ -60,6 +60,7 @@ class MetadataEditPlugin(BasePlugin):
     def _read_metadata(self, epub_path: str):
         metadata = {
             "title": "",
+            "subtitle": "",
             "author": "",
             "language": "zh-CN",
             "publisher": "",
@@ -79,44 +80,72 @@ class MetadataEditPlugin(BasePlugin):
                     opf_content = zf.read(opf_path)
                     opf_root = ET.fromstring(opf_content)
 
-                    def get_text(elem, tag):
-                        found = opf_root.find(f'.//{{{NAMESPACES["dc"]}}}{tag}')
+                    dc_ns = NAMESPACES["dc"]
+                    opf_ns = NAMESPACES["opf"]
+
+                    def get_dc_text(tag):
+                        found = opf_root.find(f'.//{{{dc_ns}}}{tag}')
                         return found.text if found is not None and found.text else ""
 
-                    metadata["title"] = get_text(opf_root, "title")
-                    metadata["author"] = get_text(opf_root, "creator")
-                    metadata["language"] = get_text(opf_root, "language")
-                    metadata["publisher"] = get_text(opf_root, "publisher")
-                    metadata["description"] = get_text(opf_root, "description")
-                    metadata["identifier"] = get_text(opf_root, "identifier")
-                    metadata["rights"] = get_text(opf_root, "rights")
+                    all_titles = opf_root.findall(f'.//{{{dc_ns}}}title')
+                    for title_elem in all_titles:
+                        title_text = title_elem.text or ""
+                        title_id = title_elem.get('id', '')
+
+                        title_type = None
+                        if title_id:
+                            refine_meta = opf_root.find(f'.//{{{opf_ns}}}meta[@refines="#{title_id}"][@property="title-type"]')
+                            if refine_meta is not None:
+                                title_type = refine_meta.text
+
+                        if title_type == 'main':
+                            metadata["title"] = title_text
+                        elif title_type == 'subtitle':
+                            metadata["subtitle"] = title_text
+                        elif not metadata["title"] and title_text:
+                            metadata["title"] = title_text
+
+                    metadata["author"] = get_dc_text("creator")
+                    metadata["language"] = get_dc_text("language") or "zh-CN"
+                    metadata["publisher"] = get_dc_text("publisher")
+                    metadata["description"] = get_dc_text("description")
+                    metadata["identifier"] = get_dc_text("identifier")
+                    metadata["rights"] = get_dc_text("rights")
 
                     opf_dir = os.path.dirname(opf_path)
 
-                    meta_cover = opf_root.find('.//opf:meta[@name="cover"]', NAMESPACES)
+                    meta_cover = opf_root.find(f'.//{{{opf_ns}}}meta[@name="cover"]')
                     if meta_cover is not None:
                         cover_id = meta_cover.get('content')
-                        cover_item = opf_root.find(f'.//opf:item[@id="{cover_id}"]', NAMESPACES)
+                        cover_item = opf_root.find(f'.//{{{opf_ns}}}item[@id="{cover_id}"]')
                         if cover_item is not None:
                             cover_href = cover_item.get('href')
                             cover_full_path = os.path.join(opf_dir, cover_href) if opf_dir else cover_href
                             try:
                                 cover_data = zf.read(cover_full_path)
-                                metadata["cover"] = f"data:image/{cover_full_path.split('.')[-1]};base64,{base64.b64encode(cover_data).decode()}"
+                                ext = cover_full_path.split('.')[-1].lower()
+                                if ext == 'jpeg':
+                                    ext = 'jpg'
+                                metadata["cover"] = f"data:image/{ext};base64,{base64.b64encode(cover_data).decode()}"
                             except:
                                 pass
 
                     if not metadata["cover"]:
-                        for item in opf_root.findall('.//opf:item', NAMESPACES):
-                            href = item.get('href', '').lower()
-                            if 'cover' in href and any(href.endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.webp']):
-                                cover_full_path = os.path.join(opf_dir, item.get('href')) if opf_dir else item.get('href')
-                                try:
-                                    cover_data = zf.read(cover_full_path)
-                                    metadata["cover"] = f"data:image/{href.split('.')[-1]};base64,{base64.b64encode(cover_data).decode()}"
-                                    break
-                                except:
-                                    pass
+                        manifest = opf_root.find(f'.//{{{opf_ns}}}manifest')
+                        if manifest is not None:
+                            for item in manifest.findall(f'{{{opf_ns}}}item'):
+                                href = item.get('href', '').lower()
+                                if 'cover' in href and any(href.endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.webp']):
+                                    cover_full_path = os.path.join(opf_dir, item.get('href')) if opf_dir else item.get('href')
+                                    try:
+                                        cover_data = zf.read(cover_full_path)
+                                        ext = href.split('.')[-1].lower()
+                                        if ext == 'jpeg':
+                                            ext = 'jpg'
+                                        metadata["cover"] = f"data:image/{ext};base64,{base64.b64encode(cover_data).decode()}"
+                                        break
+                                    except:
+                                        pass
 
         except Exception as e:
             print(f"ERROR: Failed to read metadata: {e}", file=sys.stderr)
@@ -144,14 +173,76 @@ class MetadataEditPlugin(BasePlugin):
             tree = ET.parse(opf_path)
             opf_root = tree.getroot()
 
-            dc_tags = ['title', 'creator', 'language', 'publisher', 'description', 'identifier', 'rights']
-            for tag in dc_tags:
-                uri = f'{{{NAMESPACES["dc"]}}}{tag}'
+            dc_ns = NAMESPACES["dc"]
+            opf_ns = NAMESPACES["opf"]
+            metadata_elem = opf_root.find(f'.//{{{opf_ns}}}metadata')
+
+            def set_dc_element(tag, text):
+                uri = f'{{{dc_ns}}}{tag}'
                 existing = opf_root.find(f'.//{uri}')
                 if existing is None:
-                    existing = ET.SubElement(opf_root.find(f'.//{{{NAMESPACES["opf"]}}}metadata'), uri)
-                if tag in metadata:
-                    existing.text = metadata[tag]
+                    existing = ET.SubElement(metadata_elem, uri)
+                existing.text = text
+
+            def get_or_create_dc_element(tag):
+                uri = f'{{{dc_ns}}}{tag}'
+                existing = opf_root.find(f'.//{uri}')
+                if existing is None:
+                    existing = ET.SubElement(metadata_elem, uri)
+                return existing
+
+            def remove_refines_meta(opf_root, element_id, property_name):
+                metadata_elem = opf_root.find(f'.//{{{opf_ns}}}metadata')
+                if metadata_elem is not None:
+                    to_remove = []
+                    for meta in metadata_elem.findall(f'{{{opf_ns}}}meta'):
+                        if meta.get('refines') == f'#{element_id}' and meta.get('property') == property_name:
+                            to_remove.append(meta)
+                    for meta in to_remove:
+                        metadata_elem.remove(meta)
+
+            existing_title = opf_root.find(f'.//{{{dc_ns}}}title')
+            if existing_title is not None:
+                title_id = existing_title.get('id')
+                if title_id:
+                    remove_refines_meta(opf_root, title_id, 'title-type')
+                existing_title.text = metadata.get('title', '')
+
+                if metadata.get('subtitle'):
+                    subtitle_id = 'subtitle-id'
+                    existing_subtitle = opf_root.find(f'.//{{{dc_ns}}}title[@id="{subtitle_id}"]')
+                    if existing_subtitle is None:
+                        existing_subtitle = ET.SubElement(metadata_elem, f'{{{dc_ns}}}title')
+                        existing_subtitle.set('id', subtitle_id)
+                    existing_subtitle.text = metadata.get('subtitle', '')
+
+                    subtitle_meta = ET.SubElement(metadata_elem, f'{{{opf_ns}}}meta')
+                    subtitle_meta.set('refines', f'#{subtitle_id}')
+                    subtitle_meta.set('property', 'title-type')
+                    subtitle_meta.text = 'subtitle'
+
+                    if not existing_title.get('id'):
+                        existing_title.set('id', 'main-title-id')
+                    title_meta = ET.SubElement(metadata_elem, f'{{{opf_ns}}}meta')
+                    title_meta.set('refines', '#' + existing_title.get('id'))
+                    title_meta.set('property', 'title-type')
+                    title_meta.text = 'main'
+            else:
+                set_dc_element('title', metadata.get('title', ''))
+                if metadata.get('subtitle'):
+                    set_dc_element('title', metadata.get('subtitle', ''))
+
+            simple_fields = {
+                'creator': metadata.get('author', ''),
+                'language': metadata.get('language', 'zh-CN'),
+                'publisher': metadata.get('publisher', ''),
+                'description': metadata.get('description', ''),
+                'identifier': metadata.get('identifier', ''),
+                'rights': metadata.get('rights', ''),
+            }
+            for tag, value in simple_fields.items():
+                if tag != 'title':
+                    set_dc_element(tag, value)
 
             if cover_path and os.path.exists(cover_path):
                 self._update_cover(opf_root, opf_path, opf_dir, cover_path)

@@ -25,7 +25,7 @@ html, body {
   height: 100%;
 }
 
-/* Smooth scrollbar for main content */
+/* ============ 滚动条美化 ============ */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -41,11 +41,152 @@ html, body {
   background: rgba(0, 0, 0, 0.2);
 }
 
-/* Selection color */
+/* 暗色模式滚动条 */
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ============ 选中文本颜色 ============ */
 ::selection {
   background: rgba(99, 102, 241, 0.2);
 }
+.dark ::selection {
+  background: rgba(99, 102, 241, 0.3);
+}
 
+/* ============ Wails 拖拽区域 ============ */
 .drag-region {
   --wails-draggable: drag;
+}
+
+/* ============ 全局动画类 ============ */
+/* 淡入动画 */
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+/* 淡入上移动画 */
+.animate-fade-in-up {
+  animation: fade-in-up 0.4s ease-out forwards;
+}
+
+/* 缩放淡入动画 */
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out forwards;
+}
+
+/* 滑入动画 */
+.animate-slide-in-left {
+  animation: slide-in-left 0.3s ease-out forwards;
+}
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out forwards;
+}
+
+@keyframes fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes fade-in-up {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  0% { opacity: 0; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slide-in-left {
+  0% { opacity: 0; transform: translateX(-10px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slide-in-right {
+  0% { opacity: 0; transform: translateX(10px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+/* ============ 卡片悬停效果 ============ */
+.card-hover {
+  transition: all 0.2s ease-out;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 40px -10px rgba(99, 102, 241, 0.15);
+}
+
+/* ============ 按钮点击效果 ============ */
+.btn-press:active {
+  transform: scale(0.98);
+}
+
+/* ============ 加载状态 ============ */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.dark .skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ============ 焦点样式 ============ */
+.focus-ring:focus {
+  outline: none;
+  ring: 2px;
+  ring-offset: 2px;
+  ring-color: rgba(99, 102, 241, 0.5);
+}
+
+/* ============ 平滑过渡 ============ */
+.smooth-transition {
+  transition: all 0.2s ease-out;
+}
+
+/* ============ 暗色模式增强 ============ */
+.dark .dark\:bg-glass {
+  background: rgba(30, 41, 59, 0.8);
+  backdrop-filter: blur(12px);
+}
+
+.dark .dark\:border-glass {
+  border-color: rgba(51, 65, 85, 0.5);
+}
+
+/* ============ 工具提示 ============ */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  background: #1e293b;
+  color: #f1f5f9;
+  font-size: 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+[data-tooltip]:hover::after {
+  opacity: 1;
 }

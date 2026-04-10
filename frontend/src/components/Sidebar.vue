@@ -8,7 +8,7 @@ const props = defineProps({
 
 const emit = defineEmits(['change-view', 'toggle-theme'])
 
-const expandedGroups = ref({ encrypt: true, format: true, image: true, annotate: true, other: true })
+const expandedGroups = ref({ convert: false, format: false, security: false, image: false, text: false, annotate: false, platform: false })
 const toggleGroup = (key) => { expandedGroups.value[key] = !expandedGroups.value[key] }
 
 const mainItems = [
@@ -17,7 +17,24 @@ const mainItems = [
 
 const toolGroups = [
   {
-    key: 'encrypt', label: '加密 / 解密', color: 'amber',
+    key: 'convert', label: '文件转换', color: 'emerald',
+    items: [
+      { id: 'tool:txt2epub', label: 'TXT → EPUB', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+      { id: 'tool:reformat_convert', label: '重构 / 转换', icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' },
+      { id: 'tool:convert_chinese', label: '简繁转换', icon: 'M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129' },
+    ]
+  },
+  {
+    key: 'format', label: '格式处理', color: 'blue',
+    items: [
+      { id: 'tool:metadata_edit', label: '元数据编辑', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+      { id: 'tool:split_merge_epub', label: '拆分 / 合并', icon: 'M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2zm10 0h2a2 2 0 002-2V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM6 20h2a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z' },
+      { id: 'tool:font_subset', label: '字体子集化', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
+      { id: 'tool:view_opf', label: 'OPF 查看', icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4' },
+    ]
+  },
+  {
+    key: 'security', label: '安全加密', color: 'amber',
     items: [
       { id: 'tool:encrypt', label: '加密 EPUB', icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' },
       { id: 'tool:decrypt', label: '解密 EPUB', icon: 'M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z' },
@@ -25,23 +42,17 @@ const toolGroups = [
     ]
   },
   {
-    key: 'format', label: '格式 / 转换', color: 'indigo',
-    items: [
-      { id: 'tool:metadata_edit', label: '元数据编辑', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-      { id: 'txt2epub', label: 'TXT → EPUB', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
-      { id: 'tool:reformat_convert', label: '重构 / 转换', icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' },
-      { id: 'tool:convert_chinese', label: '简繁转换', icon: 'M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129' },
-      { id: 'tool:font_subset', label: '字体子集化', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
-      { id: 'tool:view_opf', label: 'OPF 查看', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-      { id: 'tool:split_merge_epub', label: '拆分 / 合并', icon: 'M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2zm10 0h2a2 2 0 002-2V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM6 20h2a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z' },
-    ]
-  },
-  {
     key: 'image', label: '图片处理', color: 'rose',
     items: [
       { id: 'tool:img_compress', label: '图片压缩', icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' },
       { id: 'tool:convert_image_format', label: '图片格式转换', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-      { id: 'tool:download_images', label: '下载网络图', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4' },
+      { id: 'tool:download_images', label: '下载网络图片', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4' },
+    ]
+  },
+  {
+    key: 'text', label: '文本处理', color: 'teal',
+    items: [
+      { id: 'tool:ad_clean', label: '广告净化', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
     ]
   },
   {
@@ -53,22 +64,22 @@ const toolGroups = [
     ]
   },
   {
-    key: 'other', label: '其它', color: 'violet',
+    key: 'platform', label: '平台适配', color: 'violet',
     items: [
       { id: 'tool:yuewei', label: '阅微→多看', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
       { id: 'tool:zhangyue', label: '掌阅→多看', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
-      { id: 'tool:ad_clean', label: '广告净化', icon: 'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z' },
     ]
   },
 ]
 
 const colorMap = {
   amber: { bg: 'bg-amber-500', light: 'text-amber-500 dark:text-amber-400', hover: 'hover:bg-amber-50 dark:hover:bg-amber-900/20 dark:hover:text-amber-300' },
-  indigo: { bg: 'bg-indigo-500', light: 'text-indigo-500 dark:text-indigo-400', hover: 'hover:bg-indigo-50 dark:hover:bg-indigo-900/20 dark:hover:text-indigo-300' },
+  blue: { bg: 'bg-blue-500', light: 'text-blue-500 dark:text-blue-400', hover: 'hover:bg-blue-50 dark:hover:bg-blue-900/20 dark:hover:text-blue-300' },
+  emerald: { bg: 'bg-emerald-500', light: 'text-emerald-500 dark:text-emerald-400', hover: 'hover:bg-emerald-50 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-300' },
   rose: { bg: 'bg-rose-500', light: 'text-rose-500 dark:text-rose-400', hover: 'hover:bg-rose-50 dark:hover:bg-rose-900/20 dark:hover:text-rose-300' },
   cyan: { bg: 'bg-cyan-500', light: 'text-cyan-500 dark:text-cyan-400', hover: 'hover:bg-cyan-50 dark:hover:bg-cyan-900/20 dark:hover:text-cyan-300' },
+  teal: { bg: 'bg-teal-500', light: 'text-teal-500 dark:text-teal-400', hover: 'hover:bg-teal-50 dark:hover:bg-teal-900/20 dark:hover:text-teal-300' },
   violet: { bg: 'bg-violet-500', light: 'text-violet-500 dark:text-violet-400', hover: 'hover:bg-violet-50 dark:hover:bg-violet-900/20 dark:hover:text-violet-300' },
-  emerald: { bg: 'bg-emerald-500', light: 'text-emerald-500 dark:text-emerald-400', hover: 'hover:bg-emerald-50 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-300' },
 }
 
 const isActive = (id) => props.currentView === id
@@ -80,7 +91,7 @@ const isActive = (id) => props.currentView === id
 
     <div class="px-4 pb-4 flex-shrink-0">
       <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 transition-transform duration-300 hover:scale-105 hover:shadow-xl hover:shadow-indigo-500/40">
           <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
           </svg>
