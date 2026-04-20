@@ -116,16 +116,16 @@ const checkSequence = (chapters) => {
 // --- Methods ---
 const handleTxtDrop = async (fileOrPath) => {
   if (!fileOrPath) return
-  const path = typeof fileOrPath === 'string' ? fileOrPath : (fileOrPath.path || await window.go.main.App.SelectFile())
-  if (path) {
-    if (!path.toLowerCase().endsWith('.txt') && !path.toLowerCase().includes('.txt')) {
+  const resolvedPath = typeof fileOrPath === 'string' ? fileOrPath : (fileOrPath.path || await window.go.main.App.SelectFile())
+  if (resolvedPath) {
+    if (!resolvedPath.toLowerCase().endsWith('.txt') && !resolvedPath.toLowerCase().includes('.txt')) {
       toast?.error?.('请选择 TXT 文本文件'); return
     }
-    txtPath.value = path
-    const filename = path.split(/[\\/]/).pop()
+    txtPath.value = resolvedPath
+    const filename = resolvedPath.split(/[\\/]/).pop()
     const name = filename.replace(/\.[^/.]+$/, '')
     if (!title.value) title.value = name
-    if (!epubPath.value) epubPath.value = path.replace(/\.[^/.]+$/, '.epub')
+    if (!epubPath.value) epubPath.value = resolvedPath.replace(/\.[^/.]+$/, '.epub')
     toast?.success?.(`已选择文件: ${filename}`)
   }
 }
@@ -372,7 +372,7 @@ const buttonSecondaryClass = buttonBaseClass + ' bg-gray-100 dark:bg-gray-700 te
               TXT 文件 <span class="text-red-400">*</span>
             </label>
             <div class="space-y-2">
-              <FileDropZone accept=".txt,text/plain" @drop="handleTxtDrop" @click="selectTxtFile" :disabled="false">
+              <FileDropZone accept=".txt,text/plain" @drop="handleTxtDrop" @error="(msg) => toast?.error?.(msg)" @click="selectTxtFile" :disabled="false">
                 <div class="flex flex-col items-center justify-center py-6 px-4 text-center">
                   <div class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mb-2">
                     <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">

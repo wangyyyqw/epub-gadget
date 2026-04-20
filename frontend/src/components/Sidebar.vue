@@ -28,6 +28,7 @@ const toolGroups = [
     key: 'format', label: '格式处理', color: 'blue',
     items: [
       { id: 'tool:metadata_edit', label: '元数据编辑', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+      { id: 'tool:replace_cover', label: '更换封面', icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' },
       { id: 'tool:split_merge_epub', label: '拆分 / 合并', icon: 'M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2zm10 0h2a2 2 0 002-2V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM6 20h2a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z' },
       { id: 'tool:font_subset', label: '字体子集化', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
       { id: 'tool:view_opf', label: 'OPF 查看', icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4' },
@@ -97,8 +98,8 @@ const isActive = (id) => props.currentView === id
           </svg>
         </div>
         <div>
-          <h1 class="text-sm font-bold text-gray-800 dark:text-white tracking-tight">EPUB 工具箱</h1>
-          <p class="text-[9px] text-gray-400 dark:text-gray-500 font-medium">v1.0.3</p>
+          <h1 class="text-base font-bold text-gray-800 dark:text-white tracking-tight">EPUB 工具箱</h1>
+          <p class="text-[10px] text-gray-400 dark:text-gray-500 font-medium">v1.0.3</p>
         </div>
       </div>
     </div>
@@ -108,7 +109,7 @@ const isActive = (id) => props.currentView === id
         v-for="item in mainItems" :key="item.id"
         @click="$emit('change-view', item.id)"
         :class="[
-          'w-full flex items-center gap-2.5 px-3 py-2 text-[12px] font-medium rounded-xl transition-all duration-200',
+          'w-full flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium rounded-xl transition-all duration-200',
           isActive(item.id)
             ? 'bg-gradient-to-r from-indigo-500/10 to-violet-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/50'
             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white'
@@ -127,7 +128,7 @@ const isActive = (id) => props.currentView === id
         >
           <div class="flex items-center gap-1.5">
             <span :class="['w-1.5 h-1.5 rounded-full bg-gradient-to-r', colorMap[group.color].bg, 'to-transparent opacity-60 group-hover:opacity-100 transition-opacity']"></span>
-            <span class="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider group-hover:text-gray-600 dark:group-hover:text-gray-400 transition-colors">{{ group.label }}</span>
+            <span class="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider group-hover:text-gray-600 dark:group-hover:text-gray-400 transition-colors">{{ group.label }}</span>
           </div>
           <svg
             class="h-3.5 w-3.5 text-gray-400 dark:text-gray-500 transition-all duration-300"
@@ -144,7 +145,7 @@ const isActive = (id) => props.currentView === id
               <button
                 @click="$emit('change-view', item.id)"
                 :class="[
-                  'w-full flex items-center gap-2.5 px-3 py-1.5 text-[12px] font-medium rounded-lg transition-all duration-200',
+                  'w-full flex items-center gap-2.5 px-3 py-1.5 text-[13px] font-medium rounded-lg transition-all duration-200',
                   isActive(item.id)
                     ? 'bg-gradient-to-r from-indigo-500/10 to-violet-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/50'
                     : `text-gray-500 dark:text-gray-400 ${colorMap[group.color].hover} hover:border-gray-200 dark:hover:border-gray-700/50 border border-transparent`

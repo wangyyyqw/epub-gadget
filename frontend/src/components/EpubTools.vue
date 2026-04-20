@@ -18,6 +18,7 @@ const outputLog = ref('')
 const selectedOperation = ref('')
 const inputPaths = ref([])
 const outputPath = ref('')
+const coverPath = ref('')
 const fontPath = ref('')
 const regexPattern = ref('')
 const selectedMode = ref('')
@@ -223,6 +224,7 @@ const operationsMap = {
   comment: { label: '正则匹配→弹窗', desc: '正则匹配文本转为弹窗注释', category: 'annotate', hasRegex: true },
   footnote_conv: { label: '脚注→弹窗', desc: '脚注转为阅微弹窗样式', category: 'annotate', hasRegex: true },
   download_images: { label: '下载网络图片', desc: '将网络图片下载到本地', category: 'other' },
+  replace_cover: { label: '更换封面', desc: '为 EPUB 替换新的封面图片', category: 'format' },
   yuewei: { label: '阅微→多看', desc: '注释格式转换', category: 'other' },
   zhangyue: { label: '掌阅→多看', desc: '掌阅脚注转为多看格式', category: 'other' },
   ad_clean: { label: '广告净化', desc: '用正则匹配并替换广告文字', category: 'other', hasAdPatterns: true }
@@ -230,6 +232,7 @@ const operationsMap = {
 
 const currentToolInfo = computed(() => operationsMap[selectedOperation.value] || { label: '请选择工具', desc: '' })
 const needsFontPath = computed(() => selectedOperation.value === 'encrypt_font')
+const needsCoverPath = computed(() => selectedOperation.value === 'replace_cover')
 const needsRegex = computed(() => operationsMap[selectedOperation.value]?.hasRegex)
 const needsMode = computed(() => operationsMap[selectedOperation.value]?.hasMode)
 const needsCompressOptions = computed(() => operationsMap[selectedOperation.value]?.hasCompressOptions)
@@ -239,6 +242,7 @@ const needsFileInput = computed(() => !(selectedOperation.value === 'split_merge
 const resetState = () => {
   inputPaths.value = []
   outputPath.value = ''
+  coverPath.value = ''
   fontPath.value = ''
   regexPattern.value = ''
   outputLog.value = ''
@@ -316,6 +320,13 @@ const selectFontFile = async () => {
   try {
     const path = await window.go.main.App.SelectFile()
     if (path) { fontPath.value = path; toast?.success?.('已选择字体文件') }
+  } catch (err) { console.error(err) }
+}
+
+const selectCoverFile = async () => {
+  try {
+    const path = await window.go.main.App.SelectFile()
+    if (path) { coverPath.value = path; toast?.success?.('已选择封面图片') }
   } catch (err) { console.error(err) }
 }
 
@@ -519,6 +530,7 @@ const runTool = async () => {
     }
     const args = ['--plugin', 'epub_tool', '--operation', backendOperation, '--input-path', filePath]
     if (fontPath.value && needsFontPath.value) args.push('--font-path', fontPath.value)
+    if (coverPath.value && needsCoverPath.value) args.push('--cover-path', coverPath.value)
     if (outputPath.value) args.push('--output-path', outputPath.value)
     if (regexPattern.value && needsRegex.value) args.push('--regex-pattern', regexPattern.value)
     if (selectedOperation.value === 'encrypt_font' && showFontTargetSelector.value) {
@@ -577,6 +589,7 @@ const isActionDisabled = computed(() => {
   if (selectedOperation.value === 'split_merge_epub' && selectedMode.value === 'split') {
     return showSplitTargetSelector.value ? selectedSplitPoints.value.length === 0 : inputPaths.value.length === 0
   }
+  if (needsCoverPath.value && !coverPath.value) return true
   return inputPaths.value.length === 0
 })
 
@@ -587,6 +600,9 @@ const actionButtonText = computed(() => {
   }
   if (selectedOperation.value === 'split_merge_epub' && selectedMode.value === 'split') {
     return showSplitTargetSelector.value ? `确认拆分（${selectedSplitPoints.value.length} 个点）` : '扫描章节'
+  }
+  if (selectedOperation.value === 'replace_cover' && !coverPath.value) {
+    return '请先选择封面'
   }
   return inputPaths.value.length > 1 ? `批量执行（${inputPaths.value.length} 个）` : '开始执行'
 })
@@ -606,6 +622,7 @@ const actionButtonText = computed(() => {
         <MergeFileList
           :files="mergeFiles"
           @drop="handleMergeFileDrop"
+          @dropError="(msg) => toast?.error?.(msg)"
           @select="selectMergeFiles"
           @remove="removeMergeFile"
           @clear="clearMergeFiles"
@@ -622,7 +639,7 @@ const actionButtonText = computed(() => {
               <span v-if="inputPaths.length > 0" class="ml-2 text-xs text-indigo-500 font-normal">已选 {{ inputPaths.length }} 个文件</span>
             </label>
             <div class="space-y-2">
-              <FileDropZone accept=".epub,application/epub+zip" :multiple="true" @drop="handleFileDrop" @click="selectFile" :disabled="false">
+              <FileDropZone accept=".epub,application/epub+zip" :multiple="true" @drop="handleFileDrop" @error="(msg) => toast?.error?.(msg)" @click="selectFile" :disabled="false">
                 <div class="flex flex-col items-center justify-center py-6 px-4 text-center">
                   <div class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mb-2">
                     <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -684,6 +701,21 @@ const actionButtonText = computed(() => {
             <input v-model="fontPath" type="text" :class="inputReadonlyClass" placeholder="选择字体文件用于混淆加密" readonly @click="selectFontFile">
             <button @click="selectFontFile" :class="buttonSecondaryClass">浏览</button>
           </div>
+        </div>
+      </div>
+
+      <!-- Cover Path (Replace Cover) -->
+      <div v-if="needsCoverPath" class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
+        <h2 class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">封面设置</h2>
+        <div>
+          <label class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+            新封面图片 <span class="text-red-400">*</span>
+          </label>
+          <div class="flex space-x-2">
+            <input v-model="coverPath" type="text" :class="inputReadonlyClass" placeholder="选择新的封面图片（支持 JPG/PNG/WebP）" readonly @click="selectCoverFile">
+            <button @click="selectCoverFile" :class="buttonSecondaryClass">浏览</button>
+          </div>
+          <p class="text-xs text-gray-400 mt-2">支持 JPG、PNG、WebP 格式，建议尺寸 600×800 以上</p>
         </div>
       </div>
 

@@ -8,7 +8,7 @@ const props = defineProps({
   disabled: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['drop', 'click'])
+const emit = defineEmits(['drop', 'click', 'error'])
 const isDragging = ref(false)
 let wailsDropRegistered = false
 
@@ -22,7 +22,10 @@ const onDrop = (x, y, paths) => {
       filtered = paths.filter(p => exts.some(ext => p.toLowerCase().endsWith(ext)))
     }
   }
-  if (filtered.length === 0) return
+  if (filtered.length === 0) {
+    emit('error', '不支持的文件类型')
+    return
+  }
   if (!props.multiple) filtered = [filtered[0]]
   emit('drop', props.multiple ? filtered : filtered[0])
 }

@@ -8,7 +8,7 @@ from .utils import encrypt_epub, decrypt_epub, reformat_epub, \
     chinese_convert, font_subset, img_compress, img_to_webp, \
     webp_to_img, phonetic_notation, pinyin_annotate, \
     yuewei_to_duokan, zhangyue_to_duokan, encrypt_font, download_web_images, regex_comment, \
-    footnote_to_comment, convert_version, view_opf, merge_epub, split_epub, ad_clean
+    footnote_to_comment, convert_version, view_opf, merge_epub, split_epub, ad_clean, replace_cover
 
 class EpubToolPlugin(BasePlugin):
     @property
@@ -21,11 +21,11 @@ class EpubToolPlugin(BasePlugin):
 
     def register_arguments(self, parser: argparse.ArgumentParser):
         parser.add_argument("--operation", choices=[
-            "encrypt", "encrypt_font", "list_font_targets", "decrypt", "reformat", "s2t", "t2s", 
-            "font_subset", "img_compress", "img_to_webp", 
+            "encrypt", "encrypt_font", "list_font_targets", "decrypt", "reformat", "s2t", "t2s",
+            "font_subset", "img_compress", "img_to_webp",
             "webp_to_img", "phonetic", "yuewei", "zhangyue", "download_images", "comment", "footnote_conv",
             "convert_version", "view_opf",
-            "merge", "split", "list_split_targets", "ad_clean"
+            "merge", "split", "list_split_targets", "ad_clean", "replace_cover"
         ], required=True, help="Operation to perform")
         parser.add_argument("--target-version", choices=["2.0", "3.0"], default="3.0", help="Target EPUB version")
         parser.add_argument("--input-path", help="Path to input EPUB file")
@@ -40,6 +40,7 @@ class EpubToolPlugin(BasePlugin):
         parser.add_argument("--webp-quality", type=int, default=80, help="WebP compression quality (1-100)")
         parser.add_argument("--png-to-jpg", choices=["true", "false"], default="true", help="Convert non-transparent PNG to JPG")
         parser.add_argument("--ad-patterns", help="Ad cleaning patterns in format: pattern1|||replacement1|||PATTERNS|||pattern2|||replacement2")
+        parser.add_argument("--cover-path", help="Path to new cover image (for replace_cover operation)")
 
     def run(self, args: argparse.Namespace):
         # merge uses --input-paths, other operations use --input-path
@@ -136,6 +137,14 @@ class EpubToolPlugin(BasePlugin):
                     print("ERROR: --ad-patterns is required for ad_clean operation", file=sys.stderr)
                     sys.exit(1)
                 result = ad_clean.run(args.input_path, output_dir, args.ad_patterns)
+            elif args.operation == "replace_cover":
+                if not args.cover_path:
+                    print("ERROR: --cover-path is required for replace_cover operation", file=sys.stderr)
+                    sys.exit(1)
+                if not os.path.exists(args.cover_path):
+                    print(f"ERROR: Cover image not found: {args.cover_path}", file=sys.stderr)
+                    sys.exit(1)
+                result = replace_cover.run(args.input_path, output_dir, args.cover_path)
             
             if result == 0:
                 print("SUCCESS", file=sys.stderr)

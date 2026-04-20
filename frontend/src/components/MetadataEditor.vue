@@ -54,11 +54,11 @@ const handleDrop = async (pathOrPaths) => {
   if (!pathOrPaths) return
   const paths = Array.isArray(pathOrPaths) ? pathOrPaths : [pathOrPaths]
   const epubPaths = paths.filter(p => typeof p === 'string' && p.toLowerCase().endsWith('.epub'))
-  if (epubPaths.length === 0) { toast?.error('请选择正确的 EPUB 文件'); return }
+  if (epubPaths.length === 0) { toast?.error?.('请选择 EPUB 文件'); return }
   
   inputPaths.value = [epubPaths[0]]
   await loadMetadata(epubPaths[0])
-  toast?.success('已选定文件准备编辑')
+    toast?.success?.('已选定文件准备编辑')
 }
 
 const handleFileSelectClick = async () => {
@@ -101,7 +101,7 @@ const loadMetadata = async (epubPath) => {
     }
   } catch (e) {
     console.error('Failed to load metadata:', e)
-    toast?.error('读取元数据失败: ' + e.message)
+    toast?.error?.('读取元数据失败: ' + e.message)
   }
 }
 
@@ -186,7 +186,7 @@ const applyMetadata = async () => {
           输入文件 <span class="text-red-400">*</span>
         </label>
         <div class="space-y-2">
-          <FileDropZone accept=".epub" :multiple="false" @drop="handleDrop" @click="handleFileSelectClick">
+          <FileDropZone accept=".epub" :multiple="false" @drop="handleDrop" @error="(msg) => toast?.error?.(msg)" @click="handleFileSelectClick">
             <div class="flex flex-col items-center justify-center py-6 px-4 text-center">
               <div class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mb-2">
                 <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">

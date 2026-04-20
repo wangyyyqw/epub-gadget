@@ -69,6 +69,7 @@ func projectRoot() string {
 }
 
 // backendSearchPaths returns the common search paths for locating backend-related files.
+// Search order prioritizes local development paths over installed app paths.
 func backendSearchPaths() ([]string, string) {
 	ex, err := os.Executable()
 	if err != nil {
@@ -78,15 +79,11 @@ func backendSearchPaths() ([]string, string) {
 	root := projectRoot()
 
 	paths := []string{
-		"backend-bin",
-		filepath.Join(exPath, "backend-bin"),
-		exPath,
+		// Local development paths (highest priority)
 		filepath.Join(root, "backend-bin"),
-	}
-
-	// macOS .app bundle: Contents/MacOS/../Resources/backend-bin/
-	if runtime.GOOS == "darwin" {
-		paths = append(paths, filepath.Join(exPath, "..", "Resources", "backend-bin"))
+		// Installed app paths (fallback)
+		filepath.Join(exPath, "..", "Resources", "backend-bin"),
+		filepath.Join(exPath, "backend-bin"),
 	}
 
 	return paths, exPath

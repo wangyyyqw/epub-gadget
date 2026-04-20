@@ -6,7 +6,7 @@ defineProps({
   files: { type: Array, required: true }
 })
 
-const emit = defineEmits(['drop', 'select', 'remove', 'clear', 'reorder'])
+const emit = defineEmits(['drop', 'dropError', 'select', 'remove', 'clear', 'reorder'])
 
 const dragIndex = ref(-1)
 
@@ -36,6 +36,7 @@ const onDragEnd = () => {
       accept=".epub,application/epub+zip"
       :multiple="true"
       @drop="$emit('drop', $event)"
+      @error="$emit('dropError', $event)"
       @click="$emit('select')"
       :disabled="false"
     >
