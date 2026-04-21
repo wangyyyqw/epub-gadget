@@ -14,6 +14,7 @@ import (
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
+
 // debugMode controls whether debug logs are printed
 var debugMode = os.Getenv("EPUB_TOOL_DEBUG") == "1"
 
@@ -102,8 +103,25 @@ func findFileInSearchPaths(filename string) string {
 	return ""
 }
 
+// getExeDir returns the directory of the running executable
+func getExeDir() string {
+	ex, err := os.Executable()
+	if err != nil {
+		return "."
+	}
+	return filepath.Dir(ex)
+}
+
+// getEmbeddedBackend returns the embedded backend path (set by windows_embed.go)
+var getEmbeddedBackend func() string = func() string { return "" }
+
 // findBackendBinary locates the converter-backend binary
 func (a *App) findBackendBinary() string {
+	// On Windows, try embedded binary first
+	if path := getEmbeddedBackend(); path != "" {
+		return path
+	}
+
 	binaryName := "converter-backend"
 	if runtime.GOOS == "windows" {
 		binaryName += ".exe"

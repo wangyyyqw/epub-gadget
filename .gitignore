@@ -22,6 +22,9 @@ backend-bin/converter-backend
 backend-bin/converter-backend.exe
 backend-bin/*.bak
 
+# Embedded backend (auto-embedded during Windows build)
+backend-embed/converter-backend.exe
+
 # Reference / test files
 参考/
 backend-bin/log.txt
