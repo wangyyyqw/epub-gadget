@@ -292,8 +292,18 @@ const handleFileDrop = (pathsOrPath) => {
   if (!pathsOrPath) return
   const paths = Array.isArray(pathsOrPath) ? pathsOrPath : [pathsOrPath]
   const validPaths = paths.map(p => typeof p === 'string' ? p : p.path).filter(Boolean)
-  const filteredPaths = validPaths.filter(p => p.toLowerCase().endsWith('.epub'))
-  if (filteredPaths.length === 0) { toast?.error?.('请选择 EPUB 文件'); return }
+  let filteredPaths = []
+  
+  if (selectedOperation.value === 'ad_clean') {
+    // 广告净化支持 TXT 和 EPUB
+    filteredPaths = validPaths.filter(p => p.toLowerCase().endsWith('.epub') || p.toLowerCase().endsWith('.txt'))
+    if (filteredPaths.length === 0) { toast?.error?.('请选择 EPUB 或 TXT 文件'); return }
+  } else {
+    // 其他功能只支持 EPUB
+    filteredPaths = validPaths.filter(p => p.toLowerCase().endsWith('.epub'))
+    if (filteredPaths.length === 0) { toast?.error?.('请选择 EPUB 文件'); return }
+  }
+  
   const existing = new Set(inputPaths.value)
   const newPaths = filteredPaths.filter(p => !existing.has(p))
   if (newPaths.length > 0) { inputPaths.value = [...inputPaths.value, ...newPaths]; toast?.success?.(`已添加 ${newPaths.length} 个文件`) }
@@ -301,7 +311,14 @@ const handleFileDrop = (pathsOrPath) => {
 
 const selectFile = async () => {
   try {
-    const paths = await window.go.main.App.SelectFiles()
+    let paths = []
+    if (selectedOperation.value === 'ad_clean') {
+      // 广告净化支持选择 TXT 和 EPUB
+      paths = await window.go.main.App.SelectFiles({ filters: [{ name: '电子书文件', extensions: ['epub', 'txt'] }] })
+    } else {
+      // 其他功能只支持 EPUB
+      paths = await window.go.main.App.SelectFiles({})
+    }
     if (paths && paths.length > 0) handleFileDrop(paths)
   } catch (err) { console.error(err) }
 }
@@ -421,7 +438,7 @@ const handleMergeFileDrop = (pathsOrPath) => {
 }
 
 const selectMergeFiles = async () => {
-  try { const paths = await window.go.main.App.SelectFiles(); if (paths && paths.length > 0) handleMergeFileDrop(paths) }
+  try { const paths = await window.go.main.App.SelectFiles({}); if (paths && paths.length > 0) handleMergeFileDrop(paths) }
   catch (err) { console.error(err) }
 }
 
@@ -639,14 +656,14 @@ const actionButtonText = computed(() => {
               <span v-if="inputPaths.length > 0" class="ml-2 text-xs text-indigo-500 font-normal">已选 {{ inputPaths.length }} 个文件</span>
             </label>
             <div class="space-y-2">
-              <FileDropZone accept=".epub,application/epub+zip" :multiple="true" @drop="handleFileDrop" @error="(msg) => toast?.error?.(msg)" @click="selectFile" :disabled="false">
+              <FileDropZone :accept="selectedOperation === 'ad_clean' ? '.epub,application/epub+zip,.txt,text/plain' : '.epub,application/epub+zip'" :multiple="true" @drop="handleFileDrop" @error="(msg) => toast?.error?.(msg)" @click="selectFile" :disabled="false">
                 <div class="flex flex-col items-center justify-center py-6 px-4 text-center">
                   <div class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mb-2">
                     <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                     </svg>
                   </div>
-                  <p class="text-sm font-medium text-gray-700 dark:text-gray-300">拖拽 EPUB 文件到此处（支持多选）</p>
+                  <p class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ selectedOperation === 'ad_clean' ? '拖拽 EPUB 或 TXT 文件到此处（支持多选）' : '拖拽 EPUB 文件到此处（支持多选）' }}</p>
                   <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">或点击选择文件</p>
                 </div>
               </FileDropZone>

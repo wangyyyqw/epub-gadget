@@ -54,11 +54,15 @@ const toggleTheme = () => {
 }
 
 const isEpubToolView = computed(() => {
-  return currentView.value && currentView.value.startsWith('tool:')
+  return currentView.value && currentView.value.startsWith('tool:') && currentView.value !== 'tool:txt2epub'
+})
+
+const isTxt2EpubView = computed(() => {
+  return currentView.value === 'tool:txt2epub'
 })
 
 const activeTool = computed(() => {
-  if (isEpubToolView.value) {
+  if (isEpubToolView.value || isTxt2EpubView.value) {
     return currentView.value.split(':')[1]
   }
   return ''
@@ -85,7 +89,7 @@ const activeTool = computed(() => {
         <div class="flex-1 min-h-0 overflow-auto">
           <div class="max-w-4xl mx-auto px-8 py-2 pb-8 min-h-0">
             <Dashboard v-if="currentView === 'dashboard'" />
-            <Txt2Epub v-else-if="currentView === 'txt2epub'" />
+            <Txt2Epub v-else-if="currentView === 'txt2epub' || isTxt2EpubView" />
             <MetadataEditor v-else-if="isMetadataEditView" :active-tool="activeTool" />
             <EpubTools v-else-if="isEpubToolView" :active-tool="activeTool" />
             <div v-else class="flex flex-col items-center justify-center min-h-[40vh] py-16 text-gray-400">

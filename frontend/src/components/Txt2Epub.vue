@@ -132,7 +132,7 @@ const handleTxtDrop = async (fileOrPath) => {
 
 const selectTxtFile = async () => {
   try {
-    const path = await window.go.main.App.SelectFile()
+    const path = await window.go.main.App.SelectTxtFile()
     if (path) {
       txtPath.value = path
       const filename = path.split(/[\\/]/).pop()
@@ -172,6 +172,23 @@ const searchDoubanCover = async () => {
       toast?.warning?.('未找到相关图书')
       showCoverPicker.value = false
       return
+    }
+    // 为每个结果下载预览图片
+    for (const item of results) {
+      if (item.cover_url) {
+        try {
+          console.log('正在下载预览封面:', item.cover_url)
+          const previewRaw = await window.go.main.App.DownloadDoubanCoverPreview(item.cover_url)
+          console.log('预览封面下载结果:', previewRaw)
+          const previewResult = JSON.parse(previewRaw)
+          if (previewResult.path) {
+            item.local_cover_path = previewResult.path
+            console.log('设置本地封面路径:', item.local_cover_path)
+          }
+        } catch (e) {
+          console.error('下载预览封面失败:', e)
+        }
+      }
     }
     coverSearchResults.value = results
     toast?.success?.(`找到 ${results.length} 个结果`)
@@ -319,10 +336,15 @@ const runConversion = async () => {
   } catch (err) {
     const errStr = String(err)
     outputLog.value += '❌ 错误: ' + errStr + '\n'
-    if (errStr.includes('exit status 2')) {
+    if (errStr.includes('PermissionError') || errStr.includes('Operation not permitted')) {
+      outputLog.value += '提示: 没有写入权限，请尝试:\n  1. 选择其他输出目录（如 Documents 文件夹）\n  2. 在 macOS 系统设置中授予应用访问 Desktop 的权限\n  3. 将输出路径改为 TXT 文件所在目录\n'
+      toast?.error?.('没有写入权限，请选择其他输出目录')
+    } else if (errStr.includes('exit status 2')) {
       outputLog.value += '提示: 后端程序执行失败，请检查:\n  1. TXT 文件是否存在且可读\n  2. 输出目录是否有写入权限\n  3. Python 环境是否正确配置\n'
+      toast?.error?.('转换失败，请查看日志详情')
+    } else {
+      toast?.error?.('转换失败，请查看日志详情')
     }
-    toast?.error?.('转换失败，请查看日志详情')
   } finally { loading.value = false }
 }
 
@@ -448,11 +470,16 @@ const buttonSecondaryClass = buttonBaseClass + ' bg-gray-100 dark:bg-gray-700 te
                   :disabled="coverDownloading"
                   class="flex flex-col items-center p-2 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-white dark:hover:bg-gray-800 transition-all cursor-pointer group"
                 >
-                  <img v-if="item.cover_url" :src="item.cover_url" :alt="item.title"
-                    class="w-16 h-22 object-cover rounded shadow-sm mb-1.5 group-hover:shadow-md transition-shadow"
-                    loading="lazy" referrerpolicy="no-referrer"
+                  <img v-if="item.local_cover_path" :src="'file://' + item.local_cover_path" :alt="item.title"
+                    class="w-16 h-24 object-cover rounded shadow-sm mb-1.5 group-hover:shadow-md transition-shadow"
+                    @error="console.error('本地图片加载失败:', item.local_cover_path)"
                   >
-                  <div v-else class="w-16 h-22 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center mb-1.5">
+                  <img v-else-if="item.cover_url" :src="item.cover_url" :alt="item.title"
+                    class="w-16 h-24 object-cover rounded shadow-sm mb-1.5 group-hover:shadow-md transition-shadow"
+                    referrerpolicy="no-referrer"
+                    @error="console.error('远程图片加载失败:', item.cover_url)"
+                  >
+                  <div v-else class="w-16 h-24 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center mb-1.5">
                     <svg class="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                   </div>
                   <span class="text-xs text-gray-700 dark:text-gray-300 text-center line-clamp-1 w-full">{{ item.title }}</span>

@@ -4,6 +4,8 @@ import {main} from '../models';
 
 export function DownloadDoubanCover(arg1:string):Promise<string>;
 
+export function DownloadDoubanCoverPreview(arg1:string):Promise<string>;
+
 export function GetLogFilePath():Promise<string>;
 
 export function Greet(arg1:string):Promise<string>;
@@ -22,4 +24,6 @@ export function SelectDirectory():Promise<string>;
 
 export function SelectFile():Promise<string>;
 
-export function SelectFiles():Promise<Array<string>>;
+export function SelectFiles(arg1:Record<string, any>):Promise<Array<string>>;
+
+export function SelectTxtFile():Promise<string>;

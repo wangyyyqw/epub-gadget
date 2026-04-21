@@ -54,6 +54,7 @@ class TxtToEpubPlugin(BasePlugin):
         # Douban cover search
         parser.add_argument("--search-cover", default=None, help="Search Douban for book cover by title")
         parser.add_argument("--download-cover", default=None, help="Download cover from URL, returns local path")
+        parser.add_argument("--download-preview", default=None, help="Download cover preview for display, returns local path")
 
     def _parse_pattern(self, p: str) -> Tuple[str, int, bool]:
         """
@@ -106,6 +107,16 @@ class TxtToEpubPlugin(BasePlugin):
                 print(json.dumps({"path": local_path}, ensure_ascii=False))
             except Exception as e:
                 print(f"ERROR: 下载封面失败: {e}", file=sys.stderr)
+                sys.exit(1)
+            return
+
+        # Douban cover preview download mode (for displaying in frontend)
+        if args.download_preview:
+            try:
+                local_path = download_cover(args.download_preview)
+                print(json.dumps({"path": local_path}, ensure_ascii=False))
+            except Exception as e:
+                print(f"ERROR: 下载预览封面失败: {e}", file=sys.stderr)
                 sys.exit(1)
             return
 

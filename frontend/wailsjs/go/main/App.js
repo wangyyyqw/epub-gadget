@@ -6,6 +6,10 @@ export function DownloadDoubanCover(arg1) {
   return window['go']['main']['App']['DownloadDoubanCover'](arg1);
 }
 
+export function DownloadDoubanCoverPreview(arg1) {
+  return window['go']['main']['App']['DownloadDoubanCoverPreview'](arg1);
+}
+
 export function GetLogFilePath() {
   return window['go']['main']['App']['GetLogFilePath']();
 }
@@ -42,6 +46,10 @@ export function SelectFile() {
   return window['go']['main']['App']['SelectFile']();
 }
 
-export function SelectFiles() {
-  return window['go']['main']['App']['SelectFiles']();
+export function SelectFiles(arg1) {
+  return window['go']['main']['App']['SelectFiles'](arg1);
+}
+
+export function SelectTxtFile() {
+  return window['go']['main']['App']['SelectTxtFile']();
 }

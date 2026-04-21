@@ -11,35 +11,42 @@ except ImportError:
 logger = logwriter()
 
 class AdClean:
-    def __init__(self, epub_path, output_path, ad_patterns):
-        if not os.path.exists(epub_path):
-            raise Exception("EPUB文件不存在")
+    def __init__(self, file_path, output_path, ad_patterns):
+        if not os.path.exists(file_path):
+            raise Exception("文件不存在")
 
-        self.epub_path = os.path.normpath(epub_path)
+        self.file_path = os.path.normpath(file_path)
         self.output_path = output_path
         self.ad_patterns = ad_patterns
-        self.epub = zipfile.ZipFile(epub_path)
+        self.is_txt = self.file_path.lower().endswith('.txt')
         
         if output_path and os.path.exists(output_path):
             if os.path.isfile(output_path):
                 raise Exception("输出路径不能是文件")
         else:
-            output_path = os.path.dirname(epub_path)
+            output_path = os.path.dirname(file_path)
             
         self.output_path = os.path.normpath(output_path)
-        self.file_write_path = os.path.join(
-            self.output_path,
-            os.path.basename(self.epub_path).replace(".epub", "_cleaned.epub"),
-        )
+        
+        if self.is_txt:
+            self.file_write_path = os.path.join(
+                self.output_path,
+                os.path.basename(self.file_path).replace(".txt", "_cleaned.txt"),
+            )
+        else:
+            self.file_write_path = os.path.join(
+                self.output_path,
+                os.path.basename(self.file_path).replace(".epub", "_cleaned.epub"),
+            )
+            self.epub = zipfile.ZipFile(file_path)
+            self.target_epub = zipfile.ZipFile(
+                self.file_write_path,
+                "w",
+                zipfile.ZIP_DEFLATED,
+            )
         
         if os.path.exists(self.file_write_path):
             os.remove(self.file_write_path)
-            
-        self.target_epub = zipfile.ZipFile(
-            self.file_write_path,
-            "w",
-            zipfile.ZIP_DEFLATED,
-        )
 
     def process_file(self):
         # 解析广告模式
@@ -61,52 +68,84 @@ class AdClean:
             logger.write("没有有效的广告净化规则")
             return
 
-        for item in self.epub.infolist():
-            content = self.epub.read(item.filename)
-            
-            # 处理 HTML 文件
-            if item.filename.lower().endswith(('.html', '.xhtml', '.htm')):
+        if self.is_txt:
+            # 处理 TXT 文件
+            try:
+                # 检测编码
+                encoding = 'utf-8'
                 try:
+                    with open(self.file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                except UnicodeDecodeError:
+                    encoding = 'gbk'
+                    with open(self.file_path, 'r', encoding='gbk', errors='ignore') as f:
+                        content = f.read()
+                
+                # 应用所有广告净化规则
+                modified = False
+                for pattern, replacement in patterns:
+                    if pattern.search(content):
+                        content = pattern.sub(replacement, content)
+                        modified = True
+                
+                # 写入结果
+                with open(self.file_write_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                
+                logger.write(f"TXT 广告净化完成，输出路径: {self.file_write_path}")
+                
+            except Exception as e:
+                logger.write(f"TXT 文件处理失败: {e}")
+                traceback.print_exc()
+        else:
+            # 处理 EPUB 文件
+            for item in self.epub.infolist():
+                content = self.epub.read(item.filename)
+                
+                # 处理 HTML 文件
+                if item.filename.lower().endswith(('.html', '.xhtml', '.htm')):
                     try:
-                        text_content = content.decode('utf-8')
-                    except UnicodeDecodeError:
-                        text_content = content.decode('gbk', errors='ignore')
-                    
-                    # 应用所有广告净化规则
-                    modified = False
-                    for pattern, replacement in patterns:
-                        if pattern.search(text_content):
-                            text_content = pattern.sub(replacement, text_content)
-                            modified = True
-                    
-                    if modified:
-                        self.target_epub.writestr(item.filename, text_content.encode('utf-8'))
-                    else:
-                        self.target_epub.writestr(item.filename, content)
+                        try:
+                            text_content = content.decode('utf-8')
+                        except UnicodeDecodeError:
+                            text_content = content.decode('gbk', errors='ignore')
                         
-                except Exception as e:
-                    logger.write(f"文件 {item.filename} 处理失败: {e}")
-                    traceback.print_exc()
+                        # 应用所有广告净化规则
+                        modified = False
+                        for pattern, replacement in patterns:
+                            if pattern.search(text_content):
+                                text_content = pattern.sub(replacement, text_content)
+                                modified = True
+                        
+                        if modified:
+                            self.target_epub.writestr(item.filename, text_content.encode('utf-8'))
+                        else:
+                            self.target_epub.writestr(item.filename, content)
+                            
+                    except Exception as e:
+                        logger.write(f"文件 {item.filename} 处理失败: {e}")
+                        traceback.print_exc()
+                        self.target_epub.writestr(item.filename, content)
+                
+                else:
                     self.target_epub.writestr(item.filename, content)
-            
-            else:
-                self.target_epub.writestr(item.filename, content)
 
-        self.close_file()
-        logger.write(f"广告净化完成，输出路径: {self.file_write_path}")
+            self.close_file()
+            logger.write(f"EPUB 广告净化完成，输出路径: {self.file_write_path}")
 
     def close_file(self):
-        if self.epub:
-            self.epub.close()
-        if self.target_epub:
-            self.target_epub.close()
+        if not self.is_txt:
+            if hasattr(self, 'epub') and self.epub:
+                self.epub.close()
+            if hasattr(self, 'target_epub') and self.target_epub:
+                self.target_epub.close()
 
     def fail_del_target(self):
         if self.file_write_path and os.path.exists(self.file_write_path):
             os.remove(self.file_write_path)
             logger.write(f"删除临时文件: {self.file_write_path}")
 
-def run(epub_path, output_path, ad_patterns_str):
+def run(file_path, output_path, ad_patterns_str):
     if not ad_patterns_str:
         logger.write("错误：广告净化规则为空")
         return "patterns_empty"
@@ -129,13 +168,13 @@ def run(epub_path, output_path, ad_patterns_str):
         logger.write("错误：没有有效的广告净化规则")
         return "patterns_empty"
         
-    logger.write(f"\n正在进行广告净化: {epub_path}")
+    logger.write(f"\n正在进行广告净化: {file_path}")
     for pattern, replacement in ad_patterns:
         logger.write(f"规则: {pattern} -> {replacement}")
     
     tool = None
     try:
-        tool = AdClean(epub_path, output_path, ad_patterns)
+        tool = AdClean(file_path, output_path, ad_patterns)
         tool.process_file()
         return 0
     except Exception as e:

@@ -17,7 +17,7 @@ const onDrop = (x, y, paths) => {
   isDragging.value = false
   let filtered = paths
   if (props.accept && props.accept !== '*') {
-    const exts = props.accept.split(',').map(t => t.trim()).filter(t => t.startsWith('.'))
+    const exts = props.accept.split(',').map(t => t.trim().toLowerCase()).filter(t => t.startsWith('.'))
     if (exts.length > 0) {
       filtered = paths.filter(p => exts.some(ext => p.toLowerCase().endsWith(ext)))
     }

@@ -14,7 +14,6 @@ import (
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-
 // debugMode controls whether debug logs are printed
 var debugMode = os.Getenv("EPUB_TOOL_DEBUG") == "1"
 
@@ -322,13 +321,65 @@ func (a *App) SelectFile() (string, error) {
 	})
 }
 
-// SelectFiles opens a file dialog for selecting multiple files
-func (a *App) SelectFiles() ([]string, error) {
-	return wailsRuntime.OpenMultipleFilesDialog(a.ctx, wailsRuntime.OpenDialogOptions{
-		Title: "选择文件（可多选）",
+// SelectTxtFile opens a file dialog filtered to TXT files
+func (a *App) SelectTxtFile() (string, error) {
+	debugLog("SelectTxtFile called")
+	return wailsRuntime.OpenFileDialog(a.ctx, wailsRuntime.OpenDialogOptions{
+		Title: "选择 TXT 文件",
 		Filters: []wailsRuntime.FileFilter{
-			{DisplayName: "EPUB 文件", Pattern: "*.epub"},
+			{DisplayName: "TXT 文件", Pattern: "*.txt"},
 		},
+	})
+}
+
+// SelectFiles opens a file dialog for selecting multiple files
+func (a *App) SelectFiles(options map[string]interface{}) ([]string, error) {
+	filters := []wailsRuntime.FileFilter{
+		{DisplayName: "EPUB 文件", Pattern: "*.epub"},
+	}
+
+	// 检查是否有自定义过滤器
+	if options != nil {
+		if filtersData, ok := options["filters"].([]interface{}); ok {
+			newFilters := []wailsRuntime.FileFilter{}
+			for _, filterItem := range filtersData {
+				if filterMap, ok := filterItem.(map[string]interface{}); ok {
+					name := "文件"
+					extensions := []string{"*"}
+
+					if n, ok := filterMap["name"].(string); ok {
+						name = n
+					}
+
+					if exts, ok := filterMap["extensions"].([]interface{}); ok {
+						extensionList := []string{}
+						for _, ext := range exts {
+							if e, ok := ext.(string); ok {
+								extensionList = append(extensionList, "*."+e)
+							}
+						}
+						if len(extensionList) > 0 {
+							extensions = extensionList
+						}
+					}
+
+					for _, ext := range extensions {
+						newFilters = append(newFilters, wailsRuntime.FileFilter{
+							DisplayName: name,
+							Pattern:     ext,
+						})
+					}
+				}
+			}
+			if len(newFilters) > 0 {
+				filters = newFilters
+			}
+		}
+	}
+
+	return wailsRuntime.OpenMultipleFilesDialog(a.ctx, wailsRuntime.OpenDialogOptions{
+		Title:   "选择文件（可多选）",
+		Filters: filters,
 	})
 }
 
@@ -378,6 +429,16 @@ func (a *App) DownloadDoubanCover(coverURL string) (string, error) {
 	result, err := a.RunBackend(args)
 	if err != nil {
 		return "", fmt.Errorf("下载封面失败: %s", err)
+	}
+	return result.Stdout, nil
+}
+
+// DownloadDoubanCoverPreview downloads a cover preview image from URL and returns the local path.
+func (a *App) DownloadDoubanCoverPreview(coverURL string) (string, error) {
+	args := []string{"--plugin", "txt2epub", "--txt-path", "/dev/null", "--epub-path", "/dev/null", "--title", "preview", "--download-preview", coverURL}
+	result, err := a.RunBackend(args)
+	if err != nil {
+		return "", fmt.Errorf("下载预览封面失败: %s", err)
 	}
 	return result.Stdout, nil
 }

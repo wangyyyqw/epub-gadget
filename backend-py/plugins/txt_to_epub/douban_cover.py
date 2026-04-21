@@ -67,7 +67,10 @@ def download_cover(cover_url: str, save_dir: Optional[str] = None) -> str:
         save_dir = tempfile.gettempdir()
     os.makedirs(save_dir, exist_ok=True)
 
-    path = os.path.join(save_dir, f"douban_cover{ext}")
+    # 生成唯一的文件名
+    import uuid
+    unique_name = f"douban_cover_{uuid.uuid4().hex[:8]}{ext}"
+    path = os.path.join(save_dir, unique_name)
     with open(path, "wb") as f:
         f.write(resp.content)
     return path

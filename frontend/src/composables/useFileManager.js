@@ -29,7 +29,7 @@ export function useFileManager(toast, allowedExtensions = ['.epub']) {
 
   const selectFile = async () => {
     try {
-      const paths = await window.go.main.App.SelectFiles()
+      const paths = await window.go.main.App.SelectFiles({})
       if (paths && paths.length > 0) handleFileDrop(paths)
     } catch (err) {
       console.error(err)
