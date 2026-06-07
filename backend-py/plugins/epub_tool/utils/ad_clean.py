@@ -53,11 +53,39 @@ class AdClean:
         patterns = []
         for pattern_str, replacement in self.ad_patterns:
             try:
-                # 优化正则
-                optimized_pattern = pattern_str.replace("(.*)", "(.*?)")
+                # 智能优化：将不在字符类中的贪婪 .* 替换为非贪婪 .*?
+                # 替换 .* 为 .*? 但不破坏已有的 .*? 或 \.* 等
+                def make_nongreedy(p):
+                    result = []
+                    i = 0
+                    while i < len(p):
+                        # 检测 .* 模式：. 不在 [] 内，不在 \ 后，且 . 后面是 *
+                        if i + 1 < len(p) and p[i] == '.' and p[i + 1] == '*':
+                            # 检查前面是奇数个 \ (转义的 .)
+                            num_backslash = 0
+                            j = i - 1
+                            while j >= 0 and p[j] == '\\':
+                                num_backslash += 1
+                                j -= 1
+                            if num_backslash % 2 == 0:
+                                # 不是转义的 .*，检查后面不是 ?
+                                if i + 2 < len(p) and p[i + 2] == '?':
+                                    # 已是 .*?，跳过
+                                    result.append(p[i:i + 3])
+                                    i += 3
+                                    continue
+                                else:
+                                    result.append('.*?')
+                                    i += 2
+                                    continue
+                        result.append(p[i])
+                        i += 1
+                    return ''.join(result)
+
+                optimized_pattern = make_nongreedy(pattern_str)
                 if optimized_pattern != pattern_str:
                     logger.write(f"自动优化正则: {pattern_str} -> {optimized_pattern}")
-                
+
                 pattern = re.compile(optimized_pattern, re.DOTALL)
                 patterns.append((pattern, replacement))
             except re.error as e:

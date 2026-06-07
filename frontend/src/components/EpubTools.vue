@@ -51,7 +51,11 @@ const adPatterns = ref([
   { id: 1, pattern: '.*广告.*', replacement: '', enabled: true },
   { id: 2, pattern: '.*推广.*', replacement: '', enabled: true },
 ])
-let adPatternIdCounter = 3
+
+const getNextPatternId = () => {
+  const maxId = adPatterns.value.reduce((max, p) => Math.max(max, p.id), 2)
+  return maxId + 1
+}
 
 // Built-in presets: each entry = [label, [{pattern, replacement, enabled}]]
 const adPresets = [
@@ -197,15 +201,14 @@ const applyAdPreset = (preset) => {
   // Apply: add all items from preset, record their ids
   const newIds = []
   preset.items.forEach(item => {
-    adPatterns.value.push({ ...item, id: adPatternIdCounter++ })
-    newIds.push(adPatternIdCounter - 1)
+    adPatterns.value.push({ ...item, id: getNextPatternId() })
+    newIds.push(adPatterns.value[adPatterns.value.length - 1].id)
   })
   appliedPresets.value = { ...appliedPresets.value, [preset.label]: newIds }
 }
 
 const removeAllAdPatterns = () => {
   adPatterns.value = []
-  adPatternIdCounter = 3
   appliedPresets.value = {}
 }
 
@@ -263,7 +266,6 @@ const resetState = () => {
     { id: 1, pattern: '.*广告.*', replacement: '', enabled: true },
     { id: 2, pattern: '.*推广.*', replacement: '', enabled: true },
   ]
-  adPatternIdCounter = 3
   appliedPresets.value = {}
 }
 
@@ -447,7 +449,7 @@ const clearMergeFiles = () => { mergeFiles.value = [] }
 
 // Ad pattern management
 const addAdPattern = () => {
-  adPatterns.value.push({ id: adPatternIdCounter++, pattern: '', replacement: '', enabled: true })
+  adPatterns.value.push({ id: getNextPatternId(), pattern: '', replacement: '', enabled: true })
 }
 
 const removeAdPattern = (id) => {

@@ -7,6 +7,7 @@ import re
 import zipfile
 import copy
 import posixpath
+import html
 from xml.etree import ElementTree
 from urllib.parse import unquote, quote
 
@@ -406,18 +407,25 @@ def _generate_merged_nav(all_toc_entries, nav_bookpath):
     lines.append('  <h1>Table of Contents</h1>')
     lines.append('  <ol>')
 
+    def _escape_xml(text):
+        """Escape XML special characters to prevent injection."""
+        return html.escape(str(text))
+
     for epub_title, entries in all_toc_entries:
+        safe_title = _escape_xml(epub_title)
         lines.append(f'    <li>')
-        lines.append(f'      <span>{epub_title}</span>')
+        lines.append(f'      <span>{safe_title}</span>')
         if entries:
             lines.append(f'      <ol>')
             for title, href in entries:
+                safe_title = _escape_xml(title)
                 if href:
                     rel_href = posixpath.relpath(href, nav_dir)
                     rel_href = rel_href.replace("\\", "/")
-                    lines.append(f'        <li><a href="{rel_href}">{title}</a></li>')
+                    safe_href = _escape_xml(rel_href)
+                    lines.append(f'        <li><a href="{safe_href}">{safe_title}</a></li>')
                 else:
-                    lines.append(f'        <li><span>{title}</span></li>')
+                    lines.append(f'        <li><span>{safe_title}</span></li>')
             lines.append(f'      </ol>')
         lines.append(f'    </li>')
 

@@ -6,6 +6,7 @@ import sys
 import re
 import zipfile
 import posixpath
+import html
 from xml.etree import ElementTree
 from urllib.parse import unquote
 
@@ -356,14 +357,20 @@ def _generate_split_nav(toc_entries, nav_bookpath):
     lines.append('  <h1>Table of Contents</h1>')
     lines.append('  <ol>')
 
+    def _escape_xml(text):
+        """Escape XML special characters to prevent injection."""
+        return html.escape(str(text))
+
     for entry in toc_entries:
         title = entry["title"]
         href = entry["href"]
+        safe_title = _escape_xml(title)
         if href:
             rel_href = posixpath.relpath(href, nav_dir).replace("\\", "/")
-            lines.append(f'    <li><a href="{rel_href}">{title}</a></li>')
+            safe_href = _escape_xml(rel_href)
+            lines.append(f'    <li><a href="{safe_href}">{safe_title}</a></li>')
         else:
-            lines.append(f'    <li><span>{title}</span></li>')
+            lines.append(f'    <li><span>{safe_title}</span></li>')
 
     lines.append('  </ol>')
     lines.append('</nav>')
@@ -396,14 +403,20 @@ def _generate_split_ncx(toc_entries, ncx_bookpath):
     lines.append('  <docTitle><text>Split EPUB</text></docTitle>')
     lines.append('  <navMap>')
 
+    def _escape_xml(text):
+        """Escape XML special characters to prevent injection."""
+        return html.escape(str(text))
+
     for idx, entry in enumerate(toc_entries):
         title = entry["title"]
         href = entry["href"]
+        safe_title = _escape_xml(title)
         if href:
             rel_href = posixpath.relpath(href, ncx_dir).replace("\\", "/")
+            safe_href = _escape_xml(rel_href)
             lines.append(f'    <navPoint id="navPoint-{idx + 1}" playOrder="{idx + 1}">')
-            lines.append(f'      <navLabel><text>{title}</text></navLabel>')
-            lines.append(f'      <content src="{rel_href}"/>')
+            lines.append(f'      <navLabel><text>{safe_title}</text></navLabel>')
+            lines.append(f'      <content src="{safe_href}"/>')
             lines.append(f'    </navPoint>')
 
     lines.append('  </navMap>')
@@ -546,32 +559,32 @@ def _do_split(epub_path, output_dir, split_points):
         # Split points are indices into toc_targets. Each split point starts a new segment.
         # Segments are defined by the spine range between consecutive split point hrefs.
         segment_ranges = []  # list of (start_spine_idx, end_spine_idx) — inclusive start, exclusive end
+        valid_points = []  # track which split points actually produced a segment
         for i, pt in enumerate(sorted_points):
             start_spine = target_spine_indices[pt]
             if start_spine < 0:
-                # If target not in spine, try to find next valid spine position
-                for j in range(pt, len(toc_targets)):
-                    if target_spine_indices[j] >= 0:
-                        start_spine = target_spine_indices[j]
-                        break
-            if start_spine < 0:
-                start_spine = 0
+                logger.write(f"WARNING: 拆分点索引 {pt} (标题: '{toc_targets[pt]['title']}') 不对应任何 spine 内容，跳过")
+                continue
 
-            # End is the start of the next segment, or end of spine
+            # End is the spine index of the next valid split point, or end of spine
+            end_spine = None
             if i + 1 < len(sorted_points):
-                next_pt = sorted_points[i + 1]
-                end_spine = target_spine_indices[next_pt]
-                if end_spine < 0:
-                    for j in range(next_pt, len(toc_targets)):
-                        if target_spine_indices[j] >= 0:
-                            end_spine = target_spine_indices[j]
-                            break
-                if end_spine < 0:
+                for next_idx in range(i + 1, len(sorted_points)):
+                    next_pt = sorted_points[next_idx]
+                    if target_spine_indices[next_pt] >= 0:
+                        end_spine = target_spine_indices[next_pt]
+                        break
+                if end_spine is None:
                     end_spine = len(spine_bookpaths)
             else:
                 end_spine = len(spine_bookpaths)
 
             segment_ranges.append((start_spine, end_spine))
+            valid_points.append(pt)
+
+        if not segment_ranges:
+            logger.write("ERROR: 所有拆分点都无效")
+            return 1
 
         # --- Track shared content docs: assign to first referencing segment ---
         assigned_docs = set()  # bookpaths already assigned to a segment

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -263,6 +264,9 @@ func (a *App) RunBackend(args []string) (*BackendResult, error) {
 		return nil, fmt.Errorf("创建 stderr 管道失败: %s", err)
 	}
 
+	// Increase scanner buffer to handle very long JSON lines (e.g., large scan results)
+	const maxScanTokenSize = 10 * 1024 * 1024 // 10MB
+
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
@@ -271,10 +275,13 @@ func (a *App) RunBackend(args []string) (*BackendResult, error) {
 		return &BackendResult{}, fmt.Errorf("启动后端失败: %s", err)
 	}
 
-	streamOutput := func(scanner *bufio.Scanner, buf *bytes.Buffer, isError bool) {
+	streamOutput := func(r io.Reader, resultBuf *bytes.Buffer, isError bool) {
+		scanner := bufio.NewScanner(r)
+		scannerBuf := make([]byte, 0, maxScanTokenSize)
+		scanner.Buffer(scannerBuf, maxScanTokenSize)
 		for scanner.Scan() {
 			text := scanner.Text()
-			buf.WriteString(text + "\n")
+			resultBuf.WriteString(text + "\n")
 			// Emit real-time log event to frontend
 			wailsRuntime.EventsEmit(a.ctx, "backend_log", map[string]interface{}{
 				"text":    text,
@@ -283,8 +290,8 @@ func (a *App) RunBackend(args []string) (*BackendResult, error) {
 		}
 	}
 
-	go streamOutput(bufio.NewScanner(stdoutR), &stdout, false)
-	go streamOutput(bufio.NewScanner(stderrR), &stderr, true)
+	go streamOutput(stdoutR, &stdout, false)
+	go streamOutput(stderrR, &stderr, true)
 
 	// 带超时等待，默认 5 分钟
 	done := make(chan error, 1)
@@ -293,10 +300,13 @@ func (a *App) RunBackend(args []string) (*BackendResult, error) {
 	}()
 
 	timeout := 5 * time.Minute
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
 	select {
-	case <-time.After(timeout):
+	case <-timer.C:
 		if cmd.Process != nil {
 			cmd.Process.Kill()
+			cmd.Process.Wait() // 等待进程真正退出，避免僵尸进程
 		}
 		err = fmt.Errorf("执行超时（5分钟）")
 	case err = <-done:
@@ -410,35 +420,4 @@ func (a *App) OpenURL(url string) error {
 		cmd = exec.Command("xdg-open", url)
 	}
 	return cmd.Start()
-}
-
-// SearchDoubanCover searches Douban for book covers by title.
-// Returns JSON string with search results.
-func (a *App) SearchDoubanCover(title string) (string, error) {
-	args := []string{"--plugin", "txt2epub", "--txt-path", "/dev/null", "--epub-path", "/dev/null", "--title", "search", "--search-cover", title}
-	result, err := a.RunBackend(args)
-	if err != nil {
-		return "", fmt.Errorf("搜索封面失败: %s", err)
-	}
-	return result.Stdout, nil
-}
-
-// DownloadDoubanCover downloads a cover image from URL and returns the local path.
-func (a *App) DownloadDoubanCover(coverURL string) (string, error) {
-	args := []string{"--plugin", "txt2epub", "--txt-path", "/dev/null", "--epub-path", "/dev/null", "--title", "download", "--download-cover", coverURL}
-	result, err := a.RunBackend(args)
-	if err != nil {
-		return "", fmt.Errorf("下载封面失败: %s", err)
-	}
-	return result.Stdout, nil
-}
-
-// DownloadDoubanCoverPreview downloads a cover preview image from URL and returns the local path.
-func (a *App) DownloadDoubanCoverPreview(coverURL string) (string, error) {
-	args := []string{"--plugin", "txt2epub", "--txt-path", "/dev/null", "--epub-path", "/dev/null", "--title", "preview", "--download-preview", coverURL}
-	result, err := a.RunBackend(args)
-	if err != nil {
-		return "", fmt.Errorf("下载预览封面失败: %s", err)
-	}
-	return result.Stdout, nil
 }
