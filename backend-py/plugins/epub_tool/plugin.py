@@ -8,7 +8,8 @@ from .utils import encrypt_epub, decrypt_epub, reformat_epub, \
     chinese_convert, font_subset, img_compress, img_to_webp, \
     webp_to_img, phonetic_notation, pinyin_annotate, \
     yuewei_to_duokan, zhangyue_to_duokan, encrypt_font, download_web_images, regex_comment, \
-    footnote_to_comment, convert_version, view_opf, merge_epub, split_epub, ad_clean, replace_cover
+    footnote_to_comment, convert_version, view_opf, merge_epub, split_epub, ad_clean, replace_cover, \
+    epub_to_txt
 
 class EpubToolPlugin(BasePlugin):
     @property
@@ -25,7 +26,8 @@ class EpubToolPlugin(BasePlugin):
             "font_subset", "img_compress", "img_to_webp",
             "webp_to_img", "phonetic", "yuewei", "zhangyue", "download_images", "comment", "footnote_conv",
             "convert_version", "view_opf",
-            "merge", "split", "list_split_targets", "ad_clean", "replace_cover"
+            "merge", "split", "list_split_targets", "ad_clean", "replace_cover",
+            "epub_to_txt"
         ], required=True, help="Operation to perform")
         parser.add_argument("--target-version", choices=["2.0", "3.0"], default="3.0", help="Target EPUB version")
         parser.add_argument("--input-path", help="Path to input EPUB file")
@@ -41,6 +43,7 @@ class EpubToolPlugin(BasePlugin):
         parser.add_argument("--png-to-jpg", choices=["true", "false"], default="true", help="Convert non-transparent PNG to JPG")
         parser.add_argument("--ad-patterns", help="Ad cleaning patterns in format: pattern1|||replacement1|||PATTERNS|||pattern2|||replacement2")
         parser.add_argument("--cover-path", help="Path to new cover image (for replace_cover operation)")
+        parser.add_argument("--keep-images", choices=["true", "false"], default="false", help="Extract images to subfolder when converting EPUB to TXT")
 
     def run(self, args: argparse.Namespace):
         # merge uses --input-paths, other operations use --input-path
@@ -145,6 +148,11 @@ class EpubToolPlugin(BasePlugin):
                     print(f"ERROR: Cover image not found: {args.cover_path}", file=sys.stderr)
                     sys.exit(1)
                 result = replace_cover.run(args.input_path, output_dir, args.cover_path)
+            elif args.operation == "epub_to_txt":
+                result = epub_to_txt.run(
+                    args.input_path, output_dir,
+                    keep_images=(args.keep_images == "true")
+                )
             
             if result == 0:
                 print("SUCCESS", file=sys.stderr)

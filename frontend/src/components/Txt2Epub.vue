@@ -4,6 +4,9 @@ import FileDropZone from './FileDropZone.vue'
 import PatternSelector from './shared/PatternSelector.vue'
 import ChapterPreview from './shared/ChapterPreview.vue'
 import OutputLog from './shared/OutputLog.vue'
+import { useUI } from '../composables/useUI'
+
+const { inputBaseClass, inputReadonlyClass, buttonBaseClass, buttonPrimaryClass, buttonSecondaryClass, cardClass, sectionHeaderClass } = useUI()
 
 const toast = inject('toast')
 
@@ -38,6 +41,11 @@ const previewLoading = ref(false)
 const wordCountThreshold = ref(5000)
 const enableWordCountCheck = ref(true)
 const enableSequenceCheck = ref(true)
+
+// Batch mode
+const batchMode = ref(false)
+const txtFiles = ref([])
+const batchOutputDir = ref('')
 
 // --- Computed ---
 const hasSelectedPatterns = computed(() => selectedPatterns.value.length > 0)
@@ -243,6 +251,86 @@ const movePatternDown = (index) => {
 const selectAllPatterns = () => { selectedPatterns.value.forEach(p => p.enabled = true); debounceGeneratePreview() }
 const deselectAllPatterns = () => { selectedPatterns.value.forEach(p => p.enabled = false); debounceGeneratePreview() }
 
+// Batch mode helpers
+const fileName = (p) => p.split(/[\\/]/).pop()
+
+const handleBatchFileDrop = (pathsOrPath) => {
+  if (!pathsOrPath) return
+  const paths = Array.isArray(pathsOrPath) ? pathsOrPath : [pathsOrPath]
+  const validPaths = paths.map(p => typeof p === 'string' ? p : p.path).filter(p => p.toLowerCase().endsWith('.txt'))
+  if (validPaths.length === 0) { toast?.error?.('请选择 TXT 文件'); return }
+  const existing = new Set(txtFiles.value)
+  const newPaths = validPaths.filter(p => !existing.has(p))
+  if (newPaths.length > 0) { txtFiles.value = [...txtFiles.value, ...newPaths]; toast?.success?.(`已添加 ${newPaths.length} 个文件`) }
+}
+
+const selectBatchFiles = async () => {
+  try {
+    const paths = await window.go.main.App.SelectFiles({ filters: [{ name: 'TXT 文件', extensions: ['txt'] }] })
+    if (paths && paths.length > 0) handleBatchFileDrop(paths)
+  } catch (err) { console.error(err) }
+}
+
+const removeBatchFile = (index) => { txtFiles.value.splice(index, 1) }
+const clearBatchFiles = () => { txtFiles.value = [] }
+
+const selectBatchOutputDir = async () => {
+  try {
+    const path = await window.go.main.App.SelectDirectory()
+    if (path) { batchOutputDir.value = path; toast?.success?.('已设置输出目录') }
+  } catch (err) { console.error(err) }
+}
+
+const _inferTitleFromTxt = (txtPath) => {
+  return fileName(txtPath).replace(/\.txt$/i, '').trim()
+}
+
+const _inferAuthorFromTxt = (txtPath) => {
+  return 'Unknown'
+}
+
+const runBatchConversion = async () => {
+  if (txtFiles.value.length === 0) { toast?.warning?.('请先添加 TXT 文件'); return }
+  loading.value = true
+  const total = txtFiles.value.length
+  let successCount = 0, failCount = 0
+  outputLog.value = `▶ 批量转换: 共 ${total} 个 TXT 文件\n${'─'.repeat(40)}\n`
+  toast?.info?.(`开始批量转换 ${total} 个文件...`, 2000)
+  for (let i = 0; i < total; i++) {
+    const txtPath = txtFiles.value[i]
+    const name = fileName(txtPath)
+    outputLog.value += `\n[${i + 1}/${total}] ${name}\n`
+    const inferredTitle = _inferTitleFromTxt(txtPath)
+    const inferredAuthor = _inferAuthorFromTxt(txtPath)
+    const baseName = inferredTitle.replace(/[\\/:*?"<>|]/g, '_')
+    const epubPath = batchOutputDir.value
+      ? `${batchOutputDir.value}/${baseName}.epub`
+      : txtPath.replace(/\.txt$/i, '.epub')
+    const args = ['--plugin', 'txt2epub', '--txt-path', txtPath, '--epub-path', epubPath, '--title', inferredTitle, '--author', inferredAuthor]
+    if (customRegex.value) args.push('--custom-regex', customRegex.value)
+    if (patternsString.value) args.push('--patterns', patternsString.value)
+    if (removeEmptyLine.value) args.push('--remove-empty-line')
+    if (fixIndent.value) args.push('--fix-indent')
+    if (splitChapterTitle.value) args.push('--split-title')
+    if (headerImagePath.value) args.push('--header-image', headerImagePath.value)
+    try {
+      await window.go.main.App.RunBackend(args)
+      outputLog.value += '  ✅ 完成\n'
+      successCount++
+    } catch (err) {
+      outputLog.value += `  ❌ 失败: ${String(err)}\n`
+      failCount++
+    }
+  }
+  outputLog.value += `\n${'─'.repeat(40)}\n📊 结果: 成功 ${successCount}，失败 ${failCount}\n`
+  operationCompleted.value = true
+  if (failCount === 0) toast?.success?.(`批量转换完成（${successCount} 个文件）`)
+  else toast?.warning?.(`完成: ${successCount} 成功, ${failCount} 失败`)
+  loading.value = false
+}
+
+const operationCompleted = ref(false)
+
 const runConversion = async () => {
   if (!txtPath.value || !epubPath.value || !title.value) {
     const missing = []
@@ -294,20 +382,37 @@ const tabs = [
   { key: 'preview', label: '目录预览' },
   { key: 'advanced', label: '高级选项' },
 ]
-
-const inputBaseClass = 'w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 focus:bg-white dark:focus:bg-gray-800 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 outline-none transition-all'
-const inputReadonlyClass = inputBaseClass + ' cursor-pointer'
-const buttonBaseClass = 'px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1'
-const buttonPrimaryClass = buttonBaseClass + ' bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white shadow-sm hover:shadow active:scale-[0.98] focus:ring-indigo-500'
-const buttonSecondaryClass = buttonBaseClass + ' bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 focus:ring-gray-400'
 </script>
 
 <template>
   <div class="h-full flex flex-col space-y-6">
-    <header>
-      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">TXT → EPUB</h1>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">将纯文本文件转换为标准 EPUB 电子书</p>
+    <header class="pb-2">
+      <div class="flex items-center gap-3">
+        <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+            TXT → EPUB
+          </h1>
+          <p class="text-sm text-gray-500 dark:text-gray-400">将纯文本文件转换为标准 EPUB 电子书</p>
+        </div>
+      </div>
     </header>
+
+    <!-- Batch Mode Toggle -->
+    <div class="flex items-center justify-between bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+      <div>
+        <p class="text-sm font-medium text-gray-700 dark:text-gray-300">批量模式</p>
+        <p class="text-xs text-gray-400 mt-0.5">一次转换多个 TXT 文件，书名自动从文件名推断</p>
+      </div>
+      <button @click="batchMode = !batchMode"
+        :class="['relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200', batchMode ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600']">
+        <span :class="['inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 shadow-sm', batchMode ? 'translate-x-6' : 'translate-x-1']" />
+      </button>
+    </div>
 
     <div class="flex space-x-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1 w-fit">
       <button v-for="tab in tabs" :key="tab.key" @click="activeTab = tab.key"
@@ -324,37 +429,79 @@ const buttonSecondaryClass = buttonBaseClass + ' bg-gray-100 dark:bg-gray-700 te
       <template v-if="activeTab === 'basic'">
         <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
           <h2 class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">文件路径</h2>
-          <div>
+          <!-- Batch Mode File List -->
+          <div v-if="batchMode">
             <label class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
               TXT 文件 <span class="text-red-400">*</span>
+              <span v-if="txtFiles.length > 0" class="ml-2 text-xs text-indigo-500 font-normal">已选 {{ txtFiles.length }} 个文件</span>
             </label>
             <div class="space-y-2">
-              <FileDropZone accept=".txt,text/plain" @drop="handleTxtDrop" @error="(msg) => toast?.error?.(msg)" @click="selectTxtFile" :disabled="false">
+              <FileDropZone accept=".txt,text/plain" :multiple="true" @drop="handleBatchFileDrop" @error="(msg) => toast?.error?.(msg)" @click="selectBatchFiles" :disabled="false">
                 <div class="flex flex-col items-center justify-center py-6 px-4 text-center">
                   <div class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mb-2">
                     <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   </div>
-                  <p class="text-sm font-medium text-gray-700 dark:text-gray-300">拖拽 TXT 文件到此处</p>
-                  <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">或点击选择文件</p>
+                  <p class="text-sm font-medium text-gray-700 dark:text-gray-300">拖拽多个 TXT 文件到此处</p>
+                  <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">书名将从文件名自动推断</p>
                 </div>
               </FileDropZone>
-              <div v-if="txtPath" class="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-900/50 rounded-lg group">
-                <span class="text-xs text-gray-600 dark:text-gray-400 truncate flex-1 mr-2" :title="txtPath">{{ txtPath.split(/[\\/]/).pop() }}</span>
-                <button @click="txtPath = ''" class="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100">
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+              <div v-if="txtFiles.length > 0" class="space-y-1">
+                <div v-for="(p, idx) in txtFiles" :key="p" class="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-900/50 rounded-lg group">
+                  <div class="flex items-center min-w-0 flex-1 mr-2">
+                    <span class="text-xs text-gray-400 mr-2 flex-shrink-0">{{ idx + 1 }}.</span>
+                    <span class="text-xs text-gray-600 dark:text-gray-400 truncate" :title="p">{{ fileName(p) }}</span>
+                  </div>
+                  <button @click="removeBatchFile(idx)" class="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
+                <button @click="clearBatchFiles" class="text-xs text-gray-400 hover:text-red-500 transition-colors mt-1">清空全部</button>
+              </div>
+            </div>
+            <div class="mt-4">
+              <label class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">输出目录 <span class="text-gray-400 font-normal">（可选）</span></label>
+              <div class="flex space-x-2">
+                <input v-model="batchOutputDir" type="text" :class="inputReadonlyClass" placeholder="默认为源文件同目录" readonly @click="selectBatchOutputDir">
+                <button @click="selectBatchOutputDir" :class="buttonSecondaryClass">浏览</button>
               </div>
             </div>
           </div>
-          <div>
-            <label class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">EPUB 输出路径</label>
-            <div class="flex space-x-2">
-              <input v-model="epubPath" type="text" :class="inputReadonlyClass" placeholder="输出路径（自动生成）" readonly @click="selectEpubSavePath">
-              <button @click="selectEpubSavePath" :class="buttonSecondaryClass">浏览</button>
+          <!-- Single File Mode -->
+          <div v-else>
+            <div>
+              <label class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                TXT 文件 <span class="text-red-400">*</span>
+              </label>
+              <div class="space-y-2">
+                <FileDropZone accept=".txt,text/plain" @drop="handleTxtDrop" @error="(msg) => toast?.error?.(msg)" @click="selectTxtFile" :disabled="false">
+                  <div class="flex flex-col items-center justify-center py-6 px-4 text-center">
+                    <div class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mb-2">
+                      <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300">拖拽 TXT 文件到此处</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">或点击选择文件</p>
+                  </div>
+                </FileDropZone>
+                <div v-if="txtPath" class="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-900/50 rounded-lg group">
+                  <span class="text-xs text-gray-600 dark:text-gray-400 truncate flex-1 mr-2" :title="txtPath">{{ txtPath.split(/[\\/]/).pop() }}</span>
+                  <button @click="txtPath = ''" class="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="mt-4">
+              <label class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">EPUB 输出路径</label>
+              <div class="flex space-x-2">
+                <input v-model="epubPath" type="text" :class="inputReadonlyClass" placeholder="输出路径（自动生成）" readonly @click="selectEpubSavePath">
+                <button @click="selectEpubSavePath" :class="buttonSecondaryClass">浏览</button>
+              </div>
             </div>
           </div>
         </div>
@@ -417,7 +564,7 @@ const buttonSecondaryClass = buttonBaseClass + ' bg-gray-100 dark:bg-gray-700 te
       </template>
 
       <!-- Preview Tab -->
-      <template v-if="activeTab === 'preview'">
+      <template v-if="activeTab === 'preview' && !batchMode">
         <ChapterPreview
           :chapters="chapterPreview"
           :totalChapters="totalChapters"
@@ -477,7 +624,19 @@ const buttonSecondaryClass = buttonBaseClass + ' bg-gray-100 dark:bg-gray-700 te
       <div class="flex items-center justify-between pt-2">
         <button v-if="outputLog" @click="clearLog" class="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">清除日志</button>
         <div v-else></div>
-        <button @click="runConversion" :disabled="loading || !txtPath || !epubPath || !title"
+        <button v-if="batchMode" @click="runBatchConversion" :disabled="loading || txtFiles.length === 0"
+          :class="['inline-flex items-center px-6 py-2.5 text-sm font-medium rounded-lg shadow-sm text-white transition-all duration-200',
+            loading || txtFiles.length === 0
+              ? 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'
+              : 'bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 hover:shadow-md active:scale-[0.98]']"
+        >
+          <svg v-if="loading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+          {{ loading ? '转换中...' : `批量转换（${txtFiles.length} 个）` }}
+        </button>
+        <button v-else @click="runConversion" :disabled="loading || !txtPath || !epubPath || !title"
           :class="['inline-flex items-center px-6 py-2.5 text-sm font-medium rounded-lg shadow-sm text-white transition-all duration-200',
             loading || !txtPath || !epubPath || !title
               ? 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'

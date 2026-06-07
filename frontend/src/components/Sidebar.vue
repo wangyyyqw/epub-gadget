@@ -8,7 +8,7 @@ const props = defineProps({
 
 const emit = defineEmits(['change-view', 'toggle-theme'])
 
-const expandedGroups = ref({ convert: false, format: false, security: false, image: false, text: false, annotate: false, platform: false })
+const expandedGroups = ref({ convert: false, format: true, security: false, image: false, text: false, annotate: false, platform: false })
 const toggleGroup = (key) => { expandedGroups.value[key] = !expandedGroups.value[key] }
 
 const mainItems = [
@@ -28,6 +28,7 @@ const toolGroups = [
     key: 'format', label: '格式处理', color: 'blue',
     items: [
       { id: 'tool:metadata_edit', label: '元数据编辑', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+      { id: 'tool:epub_to_txt', label: 'EPUB → TXT', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
       { id: 'tool:replace_cover', label: '更换封面', icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' },
       { id: 'tool:split_merge_epub', label: '拆分 / 合并', icon: 'M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2zm10 0h2a2 2 0 002-2V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM6 20h2a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z' },
       { id: 'tool:font_subset', label: '字体子集化', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },

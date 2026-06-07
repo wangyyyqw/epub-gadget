@@ -5,6 +5,9 @@ import FontTargetSelector from './shared/FontTargetSelector.vue'
 import SplitTargetSelector from './shared/SplitTargetSelector.vue'
 import MergeFileList from './shared/MergeFileList.vue'
 import OutputLog from './shared/OutputLog.vue'
+import { useUI } from '../composables/useUI'
+
+const { inputBaseClass, inputReadonlyClass, buttonBaseClass, buttonPrimaryClass, buttonSecondaryClass, cardClass, sectionHeaderClass } = useUI()
 
 const toast = inject('toast')
 
@@ -51,6 +54,9 @@ const adPatterns = ref([
   { id: 1, pattern: '.*广告.*', replacement: '', enabled: true },
   { id: 2, pattern: '.*推广.*', replacement: '', enabled: true },
 ])
+
+// EPUB to TXT options
+const keepImages = ref(false)
 
 const getNextPatternId = () => {
   const maxId = adPatterns.value.reduce((max, p) => Math.max(max, p.id), 2)
@@ -230,7 +236,8 @@ const operationsMap = {
   replace_cover: { label: '更换封面', desc: '为 EPUB 替换新的封面图片', category: 'format' },
   yuewei: { label: '阅微→多看', desc: '注释格式转换', category: 'other' },
   zhangyue: { label: '掌阅→多看', desc: '掌阅脚注转为多看格式', category: 'other' },
-  ad_clean: { label: '广告净化', desc: '用正则匹配并替换广告文字', category: 'other', hasAdPatterns: true }
+  ad_clean: { label: '广告净化', desc: '用正则匹配并替换广告文字', category: 'other', hasAdPatterns: true },
+  epub_to_txt: { label: 'EPUB → TXT', desc: '将 EPUB 转换为纯文本文件，保留章节结构', category: 'format' }
 }
 
 const currentToolInfo = computed(() => operationsMap[selectedOperation.value] || { label: '请选择工具', desc: '' })
@@ -240,6 +247,7 @@ const needsRegex = computed(() => operationsMap[selectedOperation.value]?.hasReg
 const needsMode = computed(() => operationsMap[selectedOperation.value]?.hasMode)
 const needsCompressOptions = computed(() => operationsMap[selectedOperation.value]?.hasCompressOptions)
 const needsAdPatterns = computed(() => operationsMap[selectedOperation.value]?.hasAdPatterns)
+const needsEpub2Txt = computed(() => selectedOperation.value === 'epub_to_txt')
 const needsFileInput = computed(() => !(selectedOperation.value === 'split_merge_epub' && selectedMode.value === 'merge'))
 
 const resetState = () => {
@@ -280,12 +288,7 @@ watch(selectedOperation, (val) => {
   selectedMode.value = operationsMap[val]?.hasMode ? operationsMap[val].modes[0].value : ''
 })
 
-// --- Shared Style Classes ---
-const inputBaseClass = 'w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 focus:bg-white dark:focus:bg-gray-800 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 outline-none transition-all'
-const inputReadonlyClass = inputBaseClass + ' cursor-pointer'
-const buttonBaseClass = 'px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1'
-const buttonPrimaryClass = buttonBaseClass + ' bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white shadow-sm hover:shadow active:scale-[0.98] focus:ring-indigo-500'
-const buttonSecondaryClass = buttonBaseClass + ' bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 focus:ring-gray-400'
+// --- Shared Style Classes (imported from useUI) ---
 
 // --- Methods ---
 const fileName = (p) => p.split(/[\\/]/).pop()
@@ -572,6 +575,9 @@ const runTool = async () => {
       const patternsStr = enabledPatterns.map(p => `${p.pattern}|||${p.replacement}`).join('|||PATTERNS|||')
       args.push('--ad-patterns', patternsStr)
     }
+    if (selectedOperation.value === 'epub_to_txt') {
+      args.push('--keep-images', keepImages.value ? 'true' : 'false')
+    }
     try {
       await runBackend(args, () => { appendLog('  ✅ 完成'); successCount++ }, () => { failCount++ })
     } catch (err) { failCount++ }
@@ -629,9 +635,20 @@ const actionButtonText = computed(() => {
 
 <template>
   <div class="min-h-0 w-full flex flex-col space-y-6">
-    <header>
-      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ currentToolInfo.label }}</h1>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ currentToolInfo.desc }}</p>
+    <header class="pb-2">
+      <div class="flex items-center gap-3">
+        <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+            {{ currentToolInfo.label }}
+          </h1>
+          <p class="text-sm text-gray-500 dark:text-gray-400">{{ currentToolInfo.desc }}</p>
+        </div>
+      </div>
     </header>
 
     <div class="flex-1 min-h-0 overflow-y-auto space-y-5">
@@ -781,6 +798,21 @@ const actionButtonText = computed(() => {
               <span :class="['inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 shadow-sm', pngToJpg ? 'translate-x-6' : 'translate-x-1']" />
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- EPUB to TXT Options -->
+      <div v-if="needsEpub2Txt" class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
+        <h2 class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">导出选项</h2>
+        <div class="flex items-center justify-between">
+          <div>
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">保留图片</label>
+            <p class="text-xs text-gray-400 mt-0.5">将图片导出至同目录 <code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">images/</code> 子文件夹</p>
+          </div>
+          <button @click="keepImages = !keepImages"
+            :class="['relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200', keepImages ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600']">
+            <span :class="['inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 shadow-sm', keepImages ? 'translate-x-6' : 'translate-x-1']" />
+          </button>
         </div>
       </div>
 

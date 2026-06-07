@@ -15,19 +15,21 @@ const openURL = async (url) => {
 
 const features = [
   { icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253', label: 'TXT → EPUB', desc: '将纯文本文件转换为标准 EPUB 电子书，支持自动章节识别和分层目录', color: 'indigo', gradient: 'from-indigo-500/10 to-indigo-600/5' },
+  { icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', label: 'EPUB → TXT', desc: '将 EPUB 导出为纯文本，保留章节结构和标题', color: 'violet', gradient: 'from-violet-500/10 to-violet-600/5' },
   { icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z', label: '加密 / 解密', desc: '对 EPUB 进行 DRM 加密或解密处理，支持字体混淆加密', color: 'amber', gradient: 'from-amber-500/10 to-amber-600/5' },
   { icon: 'M4 6h16M4 10h16M4 14h16M4 18h16', label: 'EPUB 重构', desc: '解包并重新打包 EPUB，修复结构错误，清理冗余文件', color: 'emerald', gradient: 'from-emerald-500/10 to-emerald-600/5' },
   { icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z', label: '图片处理', desc: '压缩图片体积、转换 WebP 格式、下载远程网络图片到本地', color: 'rose', gradient: 'from-rose-500/10 to-rose-600/5' },
-  { icon: 'M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129', label: '简繁转换', desc: '简体繁体中文双向转换，基于词组级别精确转换', color: 'violet', gradient: 'from-violet-500/10 to-violet-600/5' },
+  { icon: 'M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129', label: '简繁转换', desc: '简体繁体中文双向转换，基于词组级别精确转换', color: 'teal', gradient: 'from-teal-500/10 to-teal-600/5' },
   { icon: 'M7 20l4-16m2 16l4-16M6 9h14M4 15h14', label: '注音 / 注释', desc: '为生僻字添加拼音注音，文本正则匹配生成脚注或弹窗注释', color: 'cyan', gradient: 'from-cyan-500/10 to-cyan-600/5' },
 ]
 
 const colorConfig = {
   indigo: { icon: 'text-indigo-500 dark:text-indigo-400', from: 'from-indigo-500', to: 'to-indigo-600' },
+  violet: { icon: 'text-violet-500 dark:text-violet-400', from: 'from-violet-500', to: 'to-violet-600' },
   amber: { icon: 'text-amber-500 dark:text-amber-400', from: 'from-amber-500', to: 'to-amber-600' },
   emerald: { icon: 'text-emerald-500 dark:text-emerald-400', from: 'from-emerald-500', to: 'to-emerald-600' },
   rose: { icon: 'text-rose-500 dark:text-rose-400', from: 'from-rose-500', to: 'to-rose-600' },
-  violet: { icon: 'text-violet-500 dark:text-violet-400', from: 'from-violet-500', to: 'to-violet-600' },
+  teal: { icon: 'text-teal-500 dark:text-teal-400', from: 'from-teal-500', to: 'to-teal-600' },
   cyan: { icon: 'text-cyan-500 dark:text-cyan-400', from: 'from-cyan-500', to: 'to-cyan-600' },
 }
 
