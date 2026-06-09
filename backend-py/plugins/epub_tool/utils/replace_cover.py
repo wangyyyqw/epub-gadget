@@ -6,6 +6,7 @@ import zipfile
 import argparse
 from PIL import Image
 from xml.etree import ElementTree as ET
+from core.utils import safe_extract_zip, safe_join_path
 
 NAMESPACES = {
     'opf': 'http://www.idpf.org/2007/opf',
@@ -36,7 +37,7 @@ def run(input_path: str, output_dir: str, cover_path: str) -> int:
     tmp_dir = tempfile.mkdtemp()
     try:
         with zipfile.ZipFile(input_path, 'r') as zf:
-            zf.extractall(tmp_dir)
+            safe_extract_zip(zf, tmp_dir)
 
         container_xml = os.path.join(tmp_dir, 'META-INF', 'container.xml')
         root = ET.parse(container_xml).getroot()
@@ -45,7 +46,7 @@ def run(input_path: str, output_dir: str, cover_path: str) -> int:
             print(f"ERROR: Invalid EPUB: container.xml missing rootfile", file=sys.stderr)
             return 1
 
-        opf_path = os.path.join(tmp_dir, rootfile.get('full-path'))
+        opf_path = safe_join_path(tmp_dir, rootfile.get('full-path'))
         opf_dir = os.path.dirname(opf_path)
 
         tree = ET.parse(opf_path)
@@ -88,7 +89,7 @@ def run(input_path: str, output_dir: str, cover_path: str) -> int:
 
         # Remove old cover files from filesystem
         for old_href in old_cover_ids:
-            old_path = os.path.join(tmp_dir, old_href)
+            old_path = safe_join_path(opf_dir, old_href)
             if os.path.exists(old_path):
                 os.remove(old_path)
 

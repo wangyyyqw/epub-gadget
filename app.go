@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sync"
 	"time"
 
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
@@ -269,6 +270,8 @@ func (a *App) RunBackend(args []string) (*BackendResult, error) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
+	var streamWG sync.WaitGroup
+	streamErrs := make(chan error, 2)
 
 	// 启动进程
 	if err := cmd.Start(); err != nil {
@@ -276,6 +279,7 @@ func (a *App) RunBackend(args []string) (*BackendResult, error) {
 	}
 
 	streamOutput := func(r io.Reader, resultBuf *bytes.Buffer, isError bool) {
+		defer streamWG.Done()
 		scanner := bufio.NewScanner(r)
 		scannerBuf := make([]byte, 0, maxScanTokenSize)
 		scanner.Buffer(scannerBuf, maxScanTokenSize)
@@ -288,8 +292,12 @@ func (a *App) RunBackend(args []string) (*BackendResult, error) {
 				"isError": isError,
 			})
 		}
+		if scanErr := scanner.Err(); scanErr != nil {
+			streamErrs <- scanErr
+		}
 	}
 
+	streamWG.Add(2)
 	go streamOutput(stdoutR, &stdout, false)
 	go streamOutput(stderrR, &stderr, true)
 
@@ -306,15 +314,24 @@ func (a *App) RunBackend(args []string) (*BackendResult, error) {
 	case <-timer.C:
 		if cmd.Process != nil {
 			cmd.Process.Kill()
-			cmd.Process.Wait() // 等待进程真正退出，避免僵尸进程
 		}
+		<-done // 等待 cmd.Wait() 回收进程，避免僵尸进程
 		err = fmt.Errorf("执行超时（5分钟）")
 	case err = <-done:
 	}
 
+	streamWG.Wait()
+	close(streamErrs)
+
 	result := &BackendResult{
 		Stdout: stdout.String(),
 		Stderr: stderr.String(),
+	}
+
+	for streamErr := range streamErrs {
+		if err == nil {
+			err = fmt.Errorf("读取后端输出失败: %s", streamErr)
+		}
 	}
 
 	if err != nil {

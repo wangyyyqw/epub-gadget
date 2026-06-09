@@ -1,6 +1,8 @@
 import chardet
 import os
+import shutil
 import sys
+import zipfile
 
 
 def detect_encoding(file_path: str, verbose: bool = True) -> str:
@@ -48,3 +50,52 @@ def detect_encoding(file_path: str, verbose: bool = True) -> str:
         return encoding
         
     return 'utf-8'
+
+
+def safe_extract_zip(zf: zipfile.ZipFile, dest_dir: str) -> None:
+    """
+    Extract a zip archive without allowing entries to escape dest_dir.
+    EPUB files are zip archives and may be user-supplied, so never call
+    extractall() on them directly.
+    """
+    dest_real = os.path.realpath(dest_dir)
+
+    for member in zf.infolist():
+        member_name = member.filename.replace("\\", "/")
+        if (
+            os.path.isabs(member_name)
+            or member_name == ".."
+            or member_name.startswith("../")
+            or "/../" in member_name
+        ):
+            raise ValueError(f"Unsafe zip entry path: {member.filename}")
+
+        target_path = os.path.realpath(os.path.join(dest_dir, member_name))
+        if target_path != dest_real and not target_path.startswith(dest_real + os.sep):
+            raise ValueError(f"Unsafe zip entry path: {member.filename}")
+
+        if member.is_dir():
+            os.makedirs(target_path, exist_ok=True)
+            continue
+
+        os.makedirs(os.path.dirname(target_path), exist_ok=True)
+        with zf.open(member, "r") as source, open(target_path, "wb") as target:
+            shutil.copyfileobj(source, target)
+
+
+def safe_join_path(base_dir: str, relative_path: str) -> str:
+    """Join a user/archive supplied relative path and require it to stay inside base_dir."""
+    normalized_path = relative_path.replace("\\", "/")
+    if (
+        os.path.isabs(normalized_path)
+        or normalized_path == ".."
+        or normalized_path.startswith("../")
+        or "/../" in normalized_path
+    ):
+        raise ValueError(f"Unsafe path: {relative_path}")
+
+    base_real = os.path.realpath(base_dir)
+    target_path = os.path.realpath(os.path.join(base_dir, normalized_path))
+    if target_path != base_real and not target_path.startswith(base_real + os.sep):
+        raise ValueError(f"Unsafe path: {relative_path}")
+    return target_path

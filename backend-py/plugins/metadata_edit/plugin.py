@@ -11,6 +11,7 @@ import base64
 from xml.etree import ElementTree as ET
 from PIL import Image
 from core.plugin_base import BasePlugin
+from core.utils import safe_extract_zip, safe_join_path
 
 NAMESPACES = {
     'opf': 'http://www.idpf.org/2007/opf',
@@ -158,7 +159,7 @@ class MetadataEditPlugin(BasePlugin):
 
         try:
             with zipfile.ZipFile(epub_path, 'r') as zf:
-                zf.extractall(tmp_dir)
+                safe_extract_zip(zf, tmp_dir)
 
             container_xml = os.path.join(tmp_dir, 'META-INF', 'container.xml')
             root = ET.parse(container_xml).getroot()
@@ -167,7 +168,7 @@ class MetadataEditPlugin(BasePlugin):
                 print("ERROR: Invalid EPUB: container.xml missing rootfile", file=sys.stderr)
                 sys.exit(1)
 
-            opf_path = os.path.join(tmp_dir, rootfile.get('full-path'))
+            opf_path = safe_join_path(tmp_dir, rootfile.get('full-path'))
             opf_dir = os.path.dirname(opf_path)
 
             tree = ET.parse(opf_path)
