@@ -9,7 +9,7 @@ from .utils import encrypt_epub, decrypt_epub, reformat_epub, \
     webp_to_img, phonetic_notation, pinyin_annotate, \
     yuewei_to_duokan, zhangyue_to_duokan, encrypt_font, download_web_images, regex_comment, \
     footnote_to_comment, convert_version, view_opf, merge_epub, split_epub, ad_clean, replace_cover, \
-    epub_to_txt
+    epub_to_txt, span_to_footnote
 
 class EpubToolPlugin(BasePlugin):
     @property
@@ -27,7 +27,7 @@ class EpubToolPlugin(BasePlugin):
             "webp_to_img", "phonetic", "yuewei", "zhangyue", "download_images", "comment", "footnote_conv",
             "convert_version", "view_opf",
             "merge", "split", "list_split_targets", "ad_clean", "replace_cover",
-            "epub_to_txt"
+            "epub_to_txt", "span_to_footnote"
         ], required=True, help="Operation to perform")
         parser.add_argument("--target-version", choices=["2.0", "3.0"], default="3.0", help="Target EPUB version")
         parser.add_argument("--input-path", help="Path to input EPUB file")
@@ -44,6 +44,8 @@ class EpubToolPlugin(BasePlugin):
         parser.add_argument("--ad-patterns", help="Ad cleaning patterns in format: pattern1|||replacement1|||PATTERNS|||pattern2|||replacement2")
         parser.add_argument("--cover-path", help="Path to new cover image (for replace_cover operation)")
         parser.add_argument("--keep-images", choices=["true", "false"], default="false", help="Extract images to subfolder when converting EPUB to TXT")
+        parser.add_argument("--footnote-color", help="Footnote text color (CSS color, e.g. #004E1C)")
+        parser.add_argument("--noteref-color", help="Noteref link color (CSS color, e.g. #004E1C)")
 
     def run(self, args: argparse.Namespace):
         # merge uses --input-paths, other operations use --input-path
@@ -152,6 +154,12 @@ class EpubToolPlugin(BasePlugin):
                 result = epub_to_txt.run(
                     args.input_path, output_dir,
                     keep_images=(args.keep_images == "true")
+                )
+            elif args.operation == "span_to_footnote":
+                result = span_to_footnote.run(
+                    args.input_path, output_dir,
+                    footnote_color=args.footnote_color,
+                    noteref_color=args.noteref_color,
                 )
             
             if result == 0:

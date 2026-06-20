@@ -1,9 +1,14 @@
 # 更新日志
 
+## v1.0.5
+
+### 优化改进
+- 脚注样式改用 inline `<style>` 内嵌块注入，弃用外部 CSS（兼容更多阅读器）
+
 ## v1.0.4
 
 ### 新增功能
-- （无）
+- 新增「弹窗→脚注」功能：将阅微书城的 `<span class="reader js_readerFooterNote">` 弹窗注释批量转换为多看风格的 `<sup><a epub:type="noteref">[N]</a></sup>` 上标引用，注释内容统一放在章节末尾的 `<aside epub:type="footnote">` 块中；每个章节独立从 [1] 开始编号。
 
 ### 优化改进
 - TXT → EPUB 章节扫描支持超大文件（修复 64KB 行长限制）

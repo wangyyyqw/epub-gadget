@@ -63,6 +63,7 @@ const toolGroups = [
       { id: 'tool:phonetic', label: '生僻字注音', icon: 'M7 20l4-16m2 16l4-16M6 9h14M4 15h14' },
       { id: 'tool:comment', label: '正则匹配→弹窗', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z' },
       { id: 'tool:footnote_conv', label: '脚注→弹窗', icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' },
+      { id: 'tool:span_to_footnote', label: '弹窗→脚注', icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
     ]
   },
   {

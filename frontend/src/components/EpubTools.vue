@@ -58,6 +58,10 @@ const adPatterns = ref([
 // EPUB to TXT options
 const keepImages = ref(false)
 
+// Footnote color options
+const footnoteColor = ref('')
+const noterefColor = ref('')
+
 const getNextPatternId = () => {
   const maxId = adPatterns.value.reduce((max, p) => Math.max(max, p.id), 2)
   return maxId + 1
@@ -232,6 +236,7 @@ const operationsMap = {
   phonetic: { label: '生僻字注音', desc: '为生僻字添加拼音标注', category: 'annotate' },
   comment: { label: '正则匹配→弹窗', desc: '正则匹配文本转为弹窗注释', category: 'annotate', hasRegex: true },
   footnote_conv: { label: '脚注→弹窗', desc: '脚注转为阅微弹窗样式', category: 'annotate', hasRegex: true },
+  span_to_footnote: { label: '弹窗→脚注', desc: '阅微弹窗注释批量转为末尾脚注格式', category: 'annotate', hasFootnoteColors: true },
   download_images: { label: '下载网络图片', desc: '将网络图片下载到本地', category: 'other' },
   replace_cover: { label: '更换封面', desc: '为 EPUB 替换新的封面图片', category: 'format' },
   yuewei: { label: '阅微→多看', desc: '注释格式转换', category: 'other' },
@@ -247,6 +252,7 @@ const needsRegex = computed(() => operationsMap[selectedOperation.value]?.hasReg
 const needsMode = computed(() => operationsMap[selectedOperation.value]?.hasMode)
 const needsCompressOptions = computed(() => operationsMap[selectedOperation.value]?.hasCompressOptions)
 const needsAdPatterns = computed(() => operationsMap[selectedOperation.value]?.hasAdPatterns)
+const needsFootnoteColors = computed(() => operationsMap[selectedOperation.value]?.hasFootnoteColors)
 const needsEpub2Txt = computed(() => selectedOperation.value === 'epub_to_txt')
 const needsFileInput = computed(() => !(selectedOperation.value === 'split_merge_epub' && selectedMode.value === 'merge'))
 
@@ -275,6 +281,8 @@ const resetState = () => {
     { id: 2, pattern: '.*推广.*', replacement: '', enabled: true },
   ]
   appliedPresets.value = {}
+  footnoteColor.value = ''
+  noterefColor.value = ''
 }
 
 watch(() => props.activeTool, (newVal) => {
@@ -578,6 +586,10 @@ const runTool = async () => {
     if (selectedOperation.value === 'epub_to_txt') {
       args.push('--keep-images', keepImages.value ? 'true' : 'false')
     }
+    if (selectedOperation.value === 'span_to_footnote') {
+      if (footnoteColor.value) args.push('--footnote-color', footnoteColor.value)
+      if (noterefColor.value) args.push('--noteref-color', noterefColor.value)
+    }
     try {
       await runBackend(args, () => { appendLog('  ✅ 完成'); successCount++ }, () => { failCount++ })
     } catch (err) { failCount++ }
@@ -813,6 +825,29 @@ const actionButtonText = computed(() => {
             :class="['relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200', keepImages ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600']">
             <span :class="['inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 shadow-sm', keepImages ? 'translate-x-6' : 'translate-x-1']" />
           </button>
+        </div>
+      </div>
+
+      <!-- Footnote Color Options -->
+      <div v-if="needsFootnoteColors" class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
+        <h2 class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">颜色设置</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">脚注文字颜色</label>
+            <div class="flex items-center gap-3">
+              <input v-model="footnoteColor" type="text" :class="inputBaseClass + ' flex-1 font-mono'" placeholder="#004E1C">
+              <input v-model="footnoteColor" type="color" class="w-10 h-10 rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer p-0.5 bg-white dark:bg-gray-700">
+            </div>
+            <p class="text-xs text-gray-400 mt-1.5">CSS 颜色值，如 #004E1C，留空使用默认</p>
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">引用标记颜色</label>
+            <div class="flex items-center gap-3">
+              <input v-model="noterefColor" type="text" :class="inputBaseClass + ' flex-1 font-mono'" placeholder="#004E1C">
+              <input v-model="noterefColor" type="color" class="w-10 h-10 rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer p-0.5 bg-white dark:bg-gray-700">
+            </div>
+            <p class="text-xs text-gray-400 mt-1.5">超链接数字颜色，留空使用默认</p>
+          </div>
         </div>
       </div>
 
