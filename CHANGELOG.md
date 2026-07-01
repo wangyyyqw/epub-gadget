@@ -1,14 +1,28 @@
 # 更新日志
 
+## v1.0.6
+
+### 优化改进
+- Dashboard 功能卡片支持点击跳转，新窗口风格更醒目
+- 添加页面切换过渡动画，提升交互流畅度
+- EpubTools 新增「到这里」快捷按钮，一键定位到输入文件目录
+- TXT→EPUB 清除日志时同步重置转换状态
+
+### 修复
+- 修复广告净化编码检测失败的问题（改用统一 `detect_encoding` 函数）
+- 修复 EPUB→TXT 章节文件 GBK 编码解码失败的问题
+- 修复 Sidebar 默认展开状态与实际功能使用频率不匹配的问题
+
 ## v1.0.5
+
+### 新增功能
+- 新增「弹窗→脚注」功能：将阅微书城的 `<span class="reader js_readerFooterNote">` 弹窗注释批量转换为多看风格的 `<sup><a epub:type="noteref">[N]</a></sup>` 上标引用，注释内容统一放在章节末尾的 `<aside epub:type="footnote">` 块中；每个章节独立从 [1] 开始编号。
 
 ### 优化改进
 - 脚注样式改用 inline `<style>` 内嵌块注入，弃用外部 CSS（兼容更多阅读器）
 
 ## v1.0.4
 
-### 新增功能
-- 新增「弹窗→脚注」功能：将阅微书城的 `<span class="reader js_readerFooterNote">` 弹窗注释批量转换为多看风格的 `<sup><a epub:type="noteref">[N]</a></sup>` 上标引用，注释内容统一放在章节末尾的 `<aside epub:type="footnote">` 块中；每个章节独立从 [1] 开始编号。
 
 ### 优化改进
 - TXT → EPUB 章节扫描支持超大文件（修复 64KB 行长限制）

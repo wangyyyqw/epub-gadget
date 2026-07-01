@@ -47,6 +47,9 @@ const batchMode = ref(false)
 const txtFiles = ref([])
 const batchOutputDir = ref('')
 
+// Operation state
+const operationCompleted = ref(false)
+
 // --- Computed ---
 const hasSelectedPatterns = computed(() => selectedPatterns.value.length > 0)
 
@@ -329,8 +332,6 @@ const runBatchConversion = async () => {
   loading.value = false
 }
 
-const operationCompleted = ref(false)
-
 const runConversion = async () => {
   if (!txtPath.value || !epubPath.value || !title.value) {
     const missing = []
@@ -355,6 +356,7 @@ const runConversion = async () => {
     if (result.stderr) outputLog.value += result.stderr + '\n'
     if (result.stdout) outputLog.value += result.stdout + '\n'
     outputLog.value += '✅ 转换完成！'
+    operationCompleted.value = true
     toast?.success?.('转换完成！')
   } catch (err) {
     const errStr = String(err)
@@ -375,7 +377,7 @@ const copyLog = async () => {
   try { await navigator.clipboard.writeText(outputLog.value); toast?.success?.('已复制日志到剪贴板') }
   catch { toast?.error?.('复制失败') }
 }
-const clearLog = () => { outputLog.value = ''; scanResults.value = null; selectedPatterns.value = []; chapterPreview.value = [] }
+const clearLog = () => { outputLog.value = ''; operationCompleted.value = false; scanResults.value = null; selectedPatterns.value = []; chapterPreview.value = [] }
 
 const tabs = [
   { key: 'basic', label: '基本设置' },

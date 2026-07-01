@@ -85,21 +85,23 @@ const activeTool = computed(() => {
         <!-- Window Drag Region (Right) -->
         <div class="h-10 w-full drag-region flex-shrink-0"></div>
 
-        <!-- Scrollable Area：min-h-0 避免嵌套 flex 下子项 min-height:auto 撑破布局，Wails/WebKit 下会出现主区域空白 -->
+        <!-- Scrollable Area with transition -->
         <div class="flex-1 min-h-0 overflow-auto">
           <div class="max-w-4xl mx-auto px-8 py-2 pb-8 min-h-0">
-            <Dashboard v-if="currentView === 'dashboard'" />
-            <Txt2Epub v-else-if="currentView === 'txt2epub' || isTxt2EpubView" />
-            <MetadataEditor v-else-if="isMetadataEditView" :active-tool="activeTool" />
-            <EpubTools v-else-if="isEpubToolView" :active-tool="activeTool" />
-            <div v-else class="flex flex-col items-center justify-center min-h-[40vh] py-16 text-gray-400">
-              <div class="text-center">
-                <svg class="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                </svg>
-                <p class="mt-2 text-sm">{{ currentView }} — 开发中</p>
+            <Transition name="page" mode="out-in">
+              <Dashboard v-if="currentView === 'dashboard'" key="dashboard" @change-view="(view) => (currentView = view)" />
+              <Txt2Epub v-else-if="currentView === 'txt2epub' || isTxt2EpubView" key="txt2epub" />
+              <MetadataEditor v-else-if="isMetadataEditView" :active-tool="activeTool" :key="currentView" />
+              <EpubTools v-else-if="isEpubToolView" :active-tool="activeTool" :key="currentView" />
+              <div v-else class="flex flex-col items-center justify-center min-h-[40vh] py-16 text-gray-400" key="unknown">
+                <div class="text-center">
+                  <svg class="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                  </svg>
+                  <p class="mt-2 text-sm">{{ currentView }} — 开发中</p>
+                </div>
               </div>
-            </div>
+            </Transition>
           </div>
         </div>
       </main>
@@ -110,5 +112,21 @@ const activeTool = computed(() => {
 <style>
 .drag-region {
   --wails-draggable: drag;
+}
+
+/* Page transition animations */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateX(10px);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: translateX(-10px);
 }
 </style>

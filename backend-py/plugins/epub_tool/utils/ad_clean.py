@@ -8,6 +8,11 @@ try:
 except ImportError:
     from .log import logwriter
 
+try:
+    from ...core.utils import detect_encoding
+except ImportError:
+    from core.utils import detect_encoding
+
 logger = logwriter()
 
 class AdClean:
@@ -99,14 +104,15 @@ class AdClean:
         if self.is_txt:
             # 处理 TXT 文件
             try:
-                # 检测编码
-                encoding = 'utf-8'
+                # 使用统一的编码检测函数
+                encoding = detect_encoding(self.file_path, verbose=False)
                 try:
-                    with open(self.file_path, 'r', encoding='utf-8') as f:
+                    with open(self.file_path, 'r', encoding=encoding, errors='replace') as f:
                         content = f.read()
-                except UnicodeDecodeError:
-                    encoding = 'gbk'
-                    with open(self.file_path, 'r', encoding='gbk', errors='ignore') as f:
+                except (UnicodeDecodeError, LookupError):
+                    # 回退到 utf-8
+                    encoding = 'utf-8'
+                    with open(self.file_path, 'r', encoding=encoding, errors='replace') as f:
                         content = f.read()
                 
                 # 应用所有广告净化规则

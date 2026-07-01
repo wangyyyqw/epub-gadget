@@ -14,23 +14,25 @@ const openURL = async (url) => {
 }
 
 const features = [
-  { icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253', label: 'TXT → EPUB', desc: '将纯文本文件转换为标准 EPUB 电子书，支持自动章节识别和分层目录', color: 'indigo', gradient: 'from-indigo-500/10 to-indigo-600/5' },
-  { icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', label: 'EPUB → TXT', desc: '将 EPUB 导出为纯文本，保留章节结构和标题', color: 'violet', gradient: 'from-violet-500/10 to-violet-600/5' },
-  { icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z', label: '加密 / 解密', desc: '对 EPUB 进行 DRM 加密或解密处理，支持字体混淆加密', color: 'amber', gradient: 'from-amber-500/10 to-amber-600/5' },
-  { icon: 'M4 6h16M4 10h16M4 14h16M4 18h16', label: 'EPUB 重构', desc: '解包并重新打包 EPUB，修复结构错误，清理冗余文件', color: 'emerald', gradient: 'from-emerald-500/10 to-emerald-600/5' },
-  { icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z', label: '图片处理', desc: '压缩图片体积、转换 WebP 格式、下载远程网络图片到本地', color: 'rose', gradient: 'from-rose-500/10 to-rose-600/5' },
-  { icon: 'M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129', label: '简繁转换', desc: '简体繁体中文双向转换，基于词组级别精确转换', color: 'teal', gradient: 'from-teal-500/10 to-teal-600/5' },
-  { icon: 'M7 20l4-16m2 16l4-16M6 9h14M4 15h14', label: '注音 / 注释', desc: '为生僻字添加拼音注音，文本正则匹配生成脚注或弹窗注释', color: 'cyan', gradient: 'from-cyan-500/10 to-cyan-600/5' },
+  { icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253', label: 'TXT → EPUB', desc: '将纯文本文件转换为标准 EPUB 电子书，支持自动章节识别和分层目录', color: 'indigo', gradient: 'from-indigo-500/10 to-indigo-600/5', glow: 'group-hover:shadow-indigo-500/20', action: 'tool:txt2epub' },
+  { icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', label: 'EPUB → TXT', desc: '将 EPUB 导出为纯文本，保留章节结构和标题', color: 'violet', gradient: 'from-violet-500/10 to-violet-600/5', glow: 'group-hover:shadow-violet-500/20', action: 'tool:epub_to_txt' },
+  { icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z', label: '加密 / 解密', desc: '对 EPUB 进行 DRM 加密或解密处理，支持字体混淆加密', color: 'amber', gradient: 'from-amber-500/10 to-amber-600/5', glow: 'group-hover:shadow-amber-500/20', action: 'tool:encrypt' },
+  { icon: 'M4 6h16M4 10h16M4 14h16M4 18h16', label: 'EPUB 重构', desc: '解包并重新打包 EPUB，修复结构错误，清理冗余文件', color: 'emerald', gradient: 'from-emerald-500/10 to-emerald-600/5', glow: 'group-hover:shadow-emerald-500/20', action: 'tool:reformat_convert' },
+  { icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z', label: '图片处理', desc: '压缩图片体积、转换 WebP 格式、下载远程网络图片到本地', color: 'rose', gradient: 'from-rose-500/10 to-rose-600/5', glow: 'group-hover:shadow-rose-500/20', action: 'tool:img_compress' },
+  { icon: 'M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129', label: '简繁转换', desc: '简体繁体中文双向转换，基于词组级别精确转换', color: 'teal', gradient: 'from-teal-500/10 to-teal-600/5', glow: 'group-hover:shadow-teal-500/20', action: 'tool:convert_chinese' },
+  { icon: 'M7 20l4-16m2 16l4-16M6 9h14M4 15h14', label: '注音 / 注释', desc: '为生僻字添加拼音注音，文本正则匹配生成脚注或弹窗注释', color: 'cyan', gradient: 'from-cyan-500/10 to-cyan-600/5', glow: 'group-hover:shadow-cyan-500/20', action: 'tool:phonetic' },
+  { icon: 'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2', label: '拆分 / 合并', desc: '按章节将 EPUB 拆分为多本，或将多本合并为一本', color: 'orange', gradient: 'from-orange-500/10 to-orange-600/5', glow: 'group-hover:shadow-orange-500/20', action: 'tool:split_merge_epub' },
 ]
 
 const colorConfig = {
-  indigo: { icon: 'text-indigo-500 dark:text-indigo-400', from: 'from-indigo-500', to: 'to-indigo-600' },
-  violet: { icon: 'text-violet-500 dark:text-violet-400', from: 'from-violet-500', to: 'to-violet-600' },
-  amber: { icon: 'text-amber-500 dark:text-amber-400', from: 'from-amber-500', to: 'to-amber-600' },
-  emerald: { icon: 'text-emerald-500 dark:text-emerald-400', from: 'from-emerald-500', to: 'to-emerald-600' },
-  rose: { icon: 'text-rose-500 dark:text-rose-400', from: 'from-rose-500', to: 'to-rose-600' },
-  teal: { icon: 'text-teal-500 dark:text-teal-400', from: 'from-teal-500', to: 'to-teal-600' },
-  cyan: { icon: 'text-cyan-500 dark:text-cyan-400', from: 'from-cyan-500', to: 'to-cyan-600' },
+  indigo: { icon: 'text-indigo-500 dark:text-indigo-400', from: 'from-indigo-500', to: 'to-indigo-600', bg: 'bg-indigo-500', light: 'text-indigo-400', badge: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300' },
+  violet: { icon: 'text-violet-500 dark:text-violet-400', from: 'from-violet-500', to: 'to-violet-600', bg: 'bg-violet-500', light: 'text-violet-400', badge: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300' },
+  amber: { icon: 'text-amber-500 dark:text-amber-400', from: 'from-amber-500', to: 'to-amber-600', bg: 'bg-amber-500', light: 'text-amber-400', badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
+  emerald: { icon: 'text-emerald-500 dark:text-emerald-400', from: 'from-emerald-500', to: 'to-emerald-600', bg: 'bg-emerald-500', light: 'text-emerald-400', badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' },
+  rose: { icon: 'text-rose-500 dark:text-rose-400', from: 'from-rose-500', to: 'to-rose-600', bg: 'bg-rose-500', light: 'text-rose-400', badge: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300' },
+  teal: { icon: 'text-teal-500 dark:text-teal-400', from: 'from-teal-500', to: 'to-teal-600', bg: 'bg-teal-500', light: 'text-teal-400', badge: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300' },
+  cyan: { icon: 'text-cyan-500 dark:text-cyan-400', from: 'from-cyan-500', to: 'to-cyan-600', bg: 'bg-cyan-500', light: 'text-cyan-400', badge: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300' },
+  orange: { icon: 'text-orange-500 dark:text-orange-400', from: 'from-orange-500', to: 'to-orange-600', bg: 'bg-orange-500', light: 'text-orange-400', badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300' },
 }
 
 // 交错动画效果
@@ -50,22 +52,40 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="h-full flex flex-col space-y-6">
+  <div class="h-full flex flex-col space-y-8">
     <!-- 标题区域 - 带渐变动画 -->
-    <header class="text-center py-4 animate-fade-in">
-      <h1 class="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent dark:from-indigo-400 dark:via-purple-400 dark:to-indigo-400 animate-shimmer bg-[length:200%_auto]">
-        EPUB 工具箱
-      </h1>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">一站式 EPUB 电子书处理工具，从创建到优化全覆盖</p>
+    <header class="text-center pt-4 animate-fade-in">
+      <div class="inline-flex items-center gap-3 mb-3">
+        <div class="p-2.5 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl shadow-lg shadow-indigo-500/30">
+          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+        </div>
+        <h1 class="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent dark:from-indigo-400 dark:via-purple-400 dark:to-indigo-400 animate-shimmer bg-[length:200%_auto]">
+          EPUB 工具箱
+        </h1>
+      </div>
+      <p class="text-sm text-gray-500 dark:text-gray-400">一站式 EPUB 电子书处理工具，从创建到优化全覆盖</p>
     </header>
 
     <!-- 快速开始卡片 - 带浮动动画 -->
     <div class="relative animate-fade-in-up" style="animation-delay: 100ms">
       <div class="absolute inset-0 bg-gradient-to-r from-indigo-500/20 via-violet-500/20 to-indigo-500/20 blur-3xl -z-10"></div>
-      <div class="bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl p-6 text-white shadow-xl shadow-indigo-500/20">
+      <button
+        @click="$emit('change-view', 'tool:txt2epub')"
+        class="w-full text-left bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl p-6 text-white shadow-xl shadow-indigo-500/20 hover:shadow-2xl hover:shadow-indigo-500/30 hover:-translate-y-0.5 transition-all duration-300 group"
+      >
         <div class="flex items-center justify-between">
           <div class="flex-1">
-            <h2 class="text-xl font-bold mb-2">快速开始</h2>
+            <h2 class="text-xl font-bold mb-2 flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              快速开始
+              <svg class="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </h2>
             <p class="text-indigo-100 text-sm leading-relaxed">选择左侧菜单中的工具开始处理你的 EPUB 文件<br>或从 TXT 创建新的电子书</p>
             <div class="flex gap-3 mt-4">
               <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 rounded-full text-xs font-medium backdrop-blur-sm">
@@ -81,16 +101,22 @@ onMounted(() => {
             </svg>
           </div>
         </div>
-      </div>
+      </button>
     </div>
 
     <!-- 功能概览 - 带交错动画 -->
     <div>
-      <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">功能概览</h2>
+      <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+        </svg>
+        功能概览
+      </h2>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div v-for="(f, index) in features" :key="f.label"
-          class="group relative bg-gradient-to-br p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 backdrop-blur-sm transition-all duration-300 ease-out"
-          :class="[f.gradient, visibleFeatures.includes(index) ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4']"
+        <button v-for="(f, index) in features" :key="f.label"
+          @click="$emit('change-view', f.action)"
+          class="group relative bg-gradient-to-br p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 backdrop-blur-sm transition-all duration-300 ease-out hover:shadow-lg hover:-translate-y-1 text-left w-full"
+          :class="[f.gradient, f.glow, visibleFeatures.includes(index) ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4']"
           :style="{ transitionDelay: `${index * 50}ms` }"
         >
           <div class="absolute inset-0 bg-gradient-to-br from-white/80 to-transparent dark:from-gray-800/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
@@ -112,14 +138,14 @@ onMounted(() => {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
           </div>
-        </div>
+        </button>
       </div>
     </div>
 
     <!-- 底部信息卡片 -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <!-- 使用提示卡片 -->
-      <div class="bg-gradient-to-br from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-800/30 border border-gray-100 dark:border-gray-700/50 rounded-2xl p-5 backdrop-blur-sm transition-all duration-300"
+      <div class="bg-gradient-to-br from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-800/30 border border-gray-100 dark:border-gray-700/50 rounded-2xl p-5 backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
         :class="visibleCards.includes(0) ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
       >
         <div class="flex items-center gap-2 mb-4">
@@ -147,7 +173,7 @@ onMounted(() => {
       </div>
 
       <!-- 致谢卡片 -->
-      <div class="bg-gradient-to-br from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-800/30 border border-gray-100 dark:border-gray-700/50 rounded-2xl p-5 backdrop-blur-sm transition-all duration-300"
+      <div class="bg-gradient-to-br from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-800/30 border border-gray-100 dark:border-gray-700/50 rounded-2xl p-5 backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
         :class="visibleCards.includes(1) ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
       >
         <div class="flex items-center gap-2 mb-4">
@@ -159,7 +185,7 @@ onMounted(() => {
           <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">致谢</h2>
         </div>
         <div class="flex flex-wrap gap-2">
-          <a v-for="(contributor, i) in [
+          <button v-for="(contributor, i) in [
             { name: '遥遥心航', url: 'https://tieba.baidu.com/home/main?id=tb.1.7f262ae1.5_dXQ2Jp0F0MH9YJtgM2Ew' },
             { name: 'lgernier', url: 'https://github.com/lgernier' },
             { name: 'fontObfuscator', url: 'https://github.com/solarhell/fontObfuscator' },
@@ -172,7 +198,7 @@ onMounted(() => {
             <svg class="h-3 w-3 opacity-50 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
-          </a>
+          </button>
         </div>
       </div>
     </div>

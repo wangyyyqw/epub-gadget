@@ -346,6 +346,18 @@ const selectOutputPath = async () => {
   } catch (err) { console.error(err) }
 }
 
+const selectToInputDir = () => {
+  if (inputPaths.value.length > 0) {
+    const path = inputPaths.value[0]
+    const lastSep = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'))
+    const dir = path.substring(0, lastSep)
+    outputPath.value = dir
+    toast?.success?.('已选择到输入文件目录')
+  } else {
+    toast?.warning?.('请先选择输入文件')
+  }
+}
+
 const selectFontFile = async () => {
   try {
     const path = await window.go.main.App.SelectFile()
@@ -717,6 +729,7 @@ const actionButtonText = computed(() => {
             <div class="flex space-x-2">
               <input v-model="outputPath" type="text" :class="inputReadonlyClass" placeholder="默认为源文件同目录" readonly @click="selectOutputPath">
               <button @click="selectOutputPath" :class="buttonSecondaryClass">浏览</button>
+              <button @click="selectToInputDir" :class="buttonSecondaryClass" title="选择到输入文件目录">到这里</button>
             </div>
           </div>
         </div>

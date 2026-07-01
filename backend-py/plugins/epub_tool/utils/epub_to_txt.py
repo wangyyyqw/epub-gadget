@@ -280,12 +280,20 @@ def _do_convert(epub_path, output_dir, keep_images):
 
         for idx, bp in enumerate(spine_bookpaths):
             try:
-                raw = zf.read(bp).decode("utf-8")
-            except (KeyError, UnicodeDecodeError):
+                raw = zf.read(bp)
+                try:
+                    text = raw.decode("utf-8")
+                except UnicodeDecodeError:
+                    try:
+                        text = raw.decode("gbk", errors="replace")
+                    except (UnicodeDecodeError, LookupError):
+                        logger.write(f"WARNING: 无法解码章节文件: {bp}")
+                        continue
+            except KeyError:
                 logger.write(f"WARNING: 无法读取章节文件: {bp}")
                 continue
 
-            text = _extract_text_from_xhtml(raw)
+            text = _extract_text_from_xhtml(text)
             if text.strip():
                 chapter_texts.append((bp, text))
 

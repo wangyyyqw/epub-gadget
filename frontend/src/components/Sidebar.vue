@@ -8,7 +8,7 @@ const props = defineProps({
 
 const emit = defineEmits(['change-view', 'toggle-theme'])
 
-const expandedGroups = ref({ convert: false, format: true, security: false, image: false, text: false, annotate: false, platform: false })
+const expandedGroups = ref({ convert: false, format: false, security: false, image: false, text: false, annotate: false, platform: false })
 const toggleGroup = (key) => { expandedGroups.value[key] = !expandedGroups.value[key] }
 
 const mainItems = [
